@@ -11,10 +11,31 @@ const userSchema = new mongoose.Schema({
     //lowercase: true,
     validate: [validator.isEmail, 'Please provide a valid email'],
   },
-  mobile: { type: String, required: true, validate: [/^[0-9]{10}$/, 'Enter a valid 10-digit mobile'] },
-  password: { type: String, required: true, minLength: 8, select: false },
+mobile: { 
+    type: String, 
+    required: function() {
+      return this.provider === 'local'; // Only required for local authentication
+    }, 
+    validate: {
+      validator: function(v) {
+        // Only validate if provider is local
+        return this.provider !== 'local' || /^[0-9]{10}$/.test(v);
+      },
+      message: 'Enter a valid 10-digit mobile'
+    }
+    
+  },
+  password: { type: String,     required: function() {
+      return this.provider === 'local'; // Only required for local authentication
+    }, minLength: 8, select: false },
   role: { type: String, enum: ['trekker', 'admin'], default: 'trekker' },
   isAdmin: { type: Boolean, default: false },
+    provider: { type: String, enum: ['local', 'google'], default: 'local' },
+  googleId: { type: String, unique: true, sparse: true },
+  avatar:{
+    type:String,
+    default:""
+  },
 verifytoken:{
   type:String
 },

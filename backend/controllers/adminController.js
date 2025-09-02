@@ -170,7 +170,9 @@ export const getAllBookings = catchAsyncErrors(async (req, res, next) => {
   const pageSize = Number(limit) || 10;
 
   // Filters
-  const filter = {};
+  const filter = { };
+
+  filter["deletedBy.admin"] = { $ne: true };
 
   // Keyword search (on name/email)
   if (keyword) {
@@ -202,7 +204,7 @@ if(mealType)
   // Fetch bookings with pagination
   const bookings = await Booking.find(filter)
     .populate("user", "name email") // only select name & email from user
-    .sort({ createdAt: -1 }) // latest first
+    .sort({ createdAt: -1,}) // latest first
     .skip((pageNumber - 1) * pageSize)
     .limit(pageSize)
     .lean();

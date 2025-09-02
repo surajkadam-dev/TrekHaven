@@ -10,7 +10,7 @@ const BookingSchema = new Schema({
   name:{type:String,required:true},
   email: { type: String, required: true, validate: [validator.isEmail, 'Invalid email'] },
   phone: { type: String, required: true, validate: [validator.isMobilePhone, 'Invalid phone number'] },
-  groupName:{type:String,required:true},
+  groupName:{type:String,default:""},
   stayDate:    { type: Date, default: Date.now },
   paymentMode:    { type: String, enum: ['online', 'cash'], required: true },
   paymentStatus:  { type: String, enum: ['pending', 'paid', 'failed'], default: 'pending' },

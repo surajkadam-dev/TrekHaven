@@ -8,7 +8,7 @@ router.post('/:accommodationId/verify-payment', isAuthenticated, isAuthorized('t
 router.get('/my-bookings',isAuthenticated,isAuthorized('trekker'),getMyBookings);
 
 router.put('/cancel-booking/:id', isAuthenticated, isAuthorized('trekker'),cancelThenAutoRefund);
-router.put("/delete-booking/:id", isAuthenticated, isAuthorized('trekker'),deleteBooking);
+router.put("/delete-booking/:id", isAuthenticated,deleteBooking);
 router.get("/refund-status/:id", isAuthenticated, isAuthorized('trekker'),getRefundStatus);
 router.get('/check-confirmation/:orderId', isAuthenticated, isAuthorized('trekker'),checkBookingConfirmation);
 

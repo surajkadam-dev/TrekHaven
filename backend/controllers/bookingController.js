@@ -10,6 +10,8 @@ import Payment from '../models/Payment.model.js';
 import RefundRequest from '../models/RefundRequest.model.js';
 import { sendEmail } from '../utils/emailService.js';
 import { saveTempBooking,getTempBooking,deleteTempBooking} from '../utils/tempBookings.js';
+import {getBookedSeatsForDate} from "../helper/capacity.js";
+import {autoCompleteBookings} from "../services/bookingService.js"
 
 import { v4 as uuidv4 } from 'uuid';
 
@@ -25,7 +27,7 @@ const razorpay = new Razorpay({
 export const createBookingOrder = async (req, res, next) => {
   try {
     const { accommodationId } = req.params;
-    console.log("Accommodation ID:", accommodationId);
+ 
     const {
       stayDate,
       groupSize,
@@ -39,11 +41,11 @@ export const createBookingOrder = async (req, res, next) => {
       email,
       phone
     } = req.body;
-
-
+console.log("body: ",req.body);
+  
 
     // Validation
-    if (!stayDate || !groupSize || !mealType || !groupName || !amount || !paymentMode || !name || !email || !phone) {
+    if (!stayDate || !groupSize || !mealType || !amount || !paymentMode || !name || !email || !phone) {
       return res.json({ success: false, error: "Missing required fields" });
     }
 
@@ -78,11 +80,38 @@ if (amount !== expectedChargeAmount) {
     error: `Amount mismatch. Expected: ${expectedChargeAmount}, Received: ${amount}`
   });
 }
+const start = new Date(stayDate);
+start.setUTCHours(0, 0, 0, 0);
+
+const end = new Date(start);
+end.setUTCDate(end.getUTCDate() + 1);
+
+
+ 
+
+  const duplicate = await Booking.findOne({
+      user: req.user._id,
+      stayDate: { $gte: start, $lt: end },
+      status: { $nin: ["cancelled", "completed"] }
+    });
+
+
+
+  if (duplicate) return res.status(400).json({ success: false, error: "You already have a booking for this date." });
+
+   const alreadyBooked = await getBookedSeatsForDate(accommodationId, start);
+    const seatsLeft = accommodation.maxMembers - alreadyBooked;
+   
+    if (size > seatsLeft) {
+      return res.status(400).json({
+        success: false,
+        error: `Not enough capacity for ${start.toISOString().slice(0, 10)}. Available seats: ${seatsLeft}`
+      });
+    }
 
     // Create Razorpay Order (with booking data in notes)
 
     const bookingToken = uuidv4();
-    console.log("userId: ", req.user._id);
     await saveTempBooking(bookingToken, {
  
   accommodationId,
@@ -90,7 +119,7 @@ if (amount !== expectedChargeAmount) {
   email,
   phone,
   groupName,
-  stayDate,
+  stayDate:start.toISOString(),
   groupSize,
   mealType,
   needStay,
@@ -227,6 +256,9 @@ if (event === "payment.captured") {
     transactionId: paymentEntity.id,
   });
 
+
+  
+
   await deleteTempBooking(bookingToken);
   console.log("✅ Booking confirmed:", booking._id);
 } else {
@@ -309,6 +341,19 @@ if (event === "payment.captured") {
   }
 };
 
+export const completeOldBookings = async (req, res, next) => {
+  try {
+    const result = await autoCompleteBookings();
+    res.status(200).json({
+      success: true,
+      message: "Bookings completed successfully",
+      result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 
 
 // Add this to your backend controllers
@@ -348,14 +393,7 @@ try {
   // if (!bookings || bookings.length === 0) {
   //   return next(new ErrorHandler('No bookings found for this user', 404));
   // }
-  if(!bookings || bookings.length === 0)
-  {
-    return res.status(404).json({
-      success: false,
-      message: 'No bookings found for this user',
-      bookings: []
-    });
-  }
+
   res.status(200).json({
     success: true,
     count: bookings.length,
@@ -368,7 +406,6 @@ try {
 
 
 
-// export const cancelBooking = async (req, res) => {
 //   const session = await mongoose.startSession();
 //   session.startTransaction();
   
@@ -460,84 +497,66 @@ try {
 export const deleteBooking = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
-  
+
   try {
     const { id } = req.params;
-    const userId = req.user._id; // Assuming authenticated user
+    const userId = req.user._id;
+    const role = req.user.role; // 'admin' or 'trekker'
 
-    // 1. Find the booking
+    // 1️⃣ Find booking
     const booking = await Booking.findById(id).session(session);
-    
     if (!booking) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(404).json({ message: 'Booking not found' });
+      return res.status(404).json({ success: false, message: "Booking not found" });
     }
 
-    // 2. Check if user owns the booking
-    if (booking.user.toString() !== userId.toString()) {
+    // 2️⃣ Role-based authorization
+    if (role === "trekker" && booking.user.toString() !== userId.toString()) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(403).json({ message: 'Unauthorized to delete this booking' });
+      return res.status(403).json({ success: false, message: "Unauthorized to delete this booking" });
     }
 
-    // 3. Check booking status
-    if (booking.status !== 'cancelled' && booking.status !== 'completed') {
+    // 3️⃣ Check booking status
+    if (!["cancelled", "completed"].includes(booking.status)) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(400).json({ 
-        message: 'Only cancelled or completed bookings can be deleted' 
-      });
+      return res.status(400).json({ success: false, message: "Only cancelled or completed bookings can be deleted" });
     }
 
-    // 4. Check if both deletion flags are already true
-    if (booking.deletedBy.user && booking.deletedBy.admin) {
-      // Both flags are true - perform hard delete
-      await Booking.deleteOne({ _id: booking._id }).session(session);
-      
-      // Commit transaction and return success
-      await session.commitTransaction();
-      session.endSession();
-      
-      return res.status(200).json({ 
-        success: true,
-        message: 'Booking permanently deleted'
-      });
+    // 4️⃣ Update deletion flags based on role
+    if (role === "admin") {
+      booking.deletedBy.admin = true;
+    } else if (role === "trekker") {
+      booking.deletedBy.user = true;
     }
 
-    // 5. Update booking deletion flags
-    booking.deletedBy.user = true;
-    booking.deletedBy.admin = false; // Explicitly set admin to false
     await booking.save({ session });
 
-    // 6. Update accommodation bookedMembers (only for completed bookings)
-    if (booking.status === 'completed') {
-      const accommodation = await Accommodation.findById(booking.accommodation).session(session);
-      
-      if (accommodation) {
-        accommodation.bookedMembers = Math.max(0, accommodation.bookedMembers - booking.groupSize);
-        await accommodation.save({ session });
-      }
+    // 5️⃣ Hard delete if both flags are true
+    if (booking.deletedBy.admin && booking.deletedBy.user) {
+      await Booking.deleteOne({ _id: booking._id }).session(session);
     }
 
-    // 7. Commit transaction
     await session.commitTransaction();
     session.endSession();
-    
-    res.status(200).json({ 
+
+    return res.status(200).json({
       success: true,
-      message: 'Booking marked as deleted'
+      message: booking.deletedBy.admin && booking.deletedBy.user
+        ? "Booking permanently deleted"
+        : "Booking marked as deleted"
     });
-    
+
   } catch (error) {
-    // 8. Abort transaction on error
     await session.abortTransaction();
     session.endSession();
-    
-    console.error('Delete booking error:', error);
-    res.status(500).json({
+
+    console.error("Delete booking error:", error);
+    return res.status(500).json({
       success: false,
-      message: 'Internal server error',
+      message: "Internal server error",
       error: error.message
     });
   }

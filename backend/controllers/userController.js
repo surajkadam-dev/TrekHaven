@@ -2,16 +2,21 @@ import { catchAsyncErrors } from '../middleware/catchAsyncErrors.js';
 import ErrorHandler from '../middleware/error.js';
 import {sendToken }from '../utils/jwtToken.js';
 import { User } from '../models/User.model.js';
-
+import {OAuth2Client} from "google-auth-library"
+import {config} from "dotenv"
+config({
+  path:"./config/config.env"
+});
+const client=new OAuth2Client(process.env.GOOGLE_CLIENT_ID,process.env.GOOGLE_CLIENT_SECRET);
 export const register = catchAsyncErrors(async (req, res) => {
   const { name, email, mobile, password, role, adminKey } = req.body;
 
-  // Validate required fields
+  // Validate required fields for local registration
   if (!name || !email || !mobile || !password || !role) {
     return res.status(400).json({ success: false, message: 'All fields are required.' });
   }
 
-  // Email format
+  // Email format validation
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return res.status(400).json({ success: false, message: 'Please provide a valid email.' });
   }
@@ -32,8 +37,16 @@ export const register = catchAsyncErrors(async (req, res) => {
     return res.status(409).json({ success: false, message: 'Email is already registered.' });
   }
 
-  // Create user
-  const user = await User.create({ name, email, mobile, password, role,isAdmin :role==="admin"});
+  // Create user with local provider
+  const user = await User.create({ 
+    name, 
+    email, 
+    mobile, 
+    password, 
+    role, 
+    isAdmin: role === "admin",
+    provider: 'local' // Explicitly set provider to local
+  });
 
   // Send JWT token in response
   sendToken(user, 201, res, 'User registered successfully');
@@ -44,17 +57,25 @@ export const login = catchAsyncErrors(async (req, res, next) => {
 
   if (!role || !email || !password) {
     return res.status(400).json({
-      success:false,
-      error:"please provide role,email and password"
-    })
+      success: false,
+      error: "Please provide role, email and password"
+    });
   }
 
   const user = await User.findOne({ email }).select("+password");
 
   if (!user) {
     return res.status(401).json({
-      success:false,
-      error:"invalid email or password"
+      success: false,
+      error: "Invalid email or password"
+    });
+  }
+
+  // Check if user registered with Google
+  if (user.provider === 'google') {
+    return res.status(400).json({
+      success: false,
+      error: "This account uses Google authentication. Please sign in with Google."
     });
   }
 
@@ -62,26 +83,141 @@ export const login = catchAsyncErrors(async (req, res, next) => {
   const isPasswordMatched = await user.comparePassword(password);
   if (!isPasswordMatched) {
     return res.status(401).json({
-      success:false,
-      error:"invalid password"
-    })
+      success: false,
+      error: "Invalid password"
+    });
   }
 
   // Check if the user's role matches the provided role
   if (user.role !== role) {
     return res.status(400).json({
-      success:false,
-      error:"Invalid user role"
+      success: false,
+      error: "Invalid user role"
     });
   }
 
-
-    if (role === "admin" && !user.isAdmin) {
+  if (role === "admin" && !user.isAdmin) {
     return next(new ErrorHandler("Unauthorized access. You are not an admin.", 403));
   }
 
   sendToken(user, 200, res, "User login successfully");
 });
+
+export const googleLoginOnly = catchAsyncErrors(async (req, res, next) => {
+  const { idToken } = req.body;
+
+  if (!idToken) {
+    return res.status(400).json({
+      success: false,
+      error: "Please provide Google ID token"
+    });
+  }
+
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    const { email, sub: googleId } = payload;
+
+    // Check if user exists
+    const user = await User.findOne({ email, provider: 'google' });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: "User not found. Please register first."
+      });
+    }
+
+    // Optional: verify googleId matches the stored one
+    if (user.googleId !== googleId) {
+      return res.status(401).json({
+        success: false,
+        error: "Google ID mismatch. Login failed."
+      });
+    }
+
+    // Send JWT
+    sendToken(user, 200, res, "User logged in successfully with Google");
+
+  } catch (error) {
+    return res.status(401).json({
+      success: false,
+      error: "Invalid Google token"
+    });
+  }
+});
+
+export const googleRegister = catchAsyncErrors(async (req, res, next) => {
+  const { idToken} = req.body;
+
+  if (!idToken) {
+    return res.status(400).json({ success: false, error: "Please provide Google ID token" });
+  }
+
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    const { email, name, picture, sub: googleId } = payload;
+
+    if (!email) {
+      return res.status(400).json({ success: false, error: "Google account does not have an email" });
+    }
+
+    // Check if a user already exists with this email
+    const existing = await User.findOne({ email });
+
+    if (existing) {
+      // If already registered using Google
+      if (existing.provider === "google") {
+        // Optional: check googleId match
+        if (existing.googleId && existing.googleId !== googleId) {
+          return res.status(409).json({
+            success: false,
+            error: "An account with this email is already registered with Google (different Google ID).",
+          });
+        }
+        return res.status(409).json({
+          success: false,
+          error: "User already registered with Google. Please login.",
+        });
+      }
+
+      // If registered manually with email/password
+      return res.status(409).json({
+        success: false,
+        error: "This email is already registered with manual authentication. Please login using email & password.",
+      });
+    }
+
+    // Role handling: default to 'trekker'. Allow 'admin' only if correct adminKey provided.
+
+
+    const newUser = await User.create({
+      name,
+      email,
+      provider: "google",
+      googleId,
+      avatar: picture || null,
+      role: "trekker",
+      isAdmin: false,
+    });
+
+    // send JWT and response (201 Created)
+    sendToken(newUser, 201, res, "User registered successfully with Google");
+  } catch (err) {
+    console.error("googleRegister error:", err);
+    return res.status(401).json({ success: false, error: "Invalid Google token" });
+  }
+});
+
 
 export const logout = async (req, res) => {
   try {
@@ -152,6 +288,7 @@ export const updatePassword=catchAsyncErrors(async(req,res,next)=>
 
 
 export const updateProfile = catchAsyncErrors(async (req, res, next) => {
+  console.log("id", req.user._id);
   const { name, email, mobile } = req.body;
 
   // Validate request body - check for all required fields

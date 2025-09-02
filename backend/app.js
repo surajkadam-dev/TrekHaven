@@ -10,6 +10,7 @@ import bookingRoutes from './Routes/bookingRoutes.js';
 import testimonialRoutes from "./Routes/TestimonialRoutes.js";
 import refundRoutes from "./Routes/refundRoutes.js"
 import { razorpayWebhook } from './controllers/bookingController.js';
+import { bookingCronJob } from './cronJobs/bookingCron.js';
 const app=express();
 config({
   path:'./config/config.env'
@@ -36,5 +37,6 @@ app.post("/razorpay/webhook", express.raw({ type: "application/json" }), razorpa
   app.use("/api/v1/testimonial",testimonialRoutes);
   app.use("/api/v1/refund",refundRoutes);
  connection();
+ bookingCronJob();
 
 export default app;
