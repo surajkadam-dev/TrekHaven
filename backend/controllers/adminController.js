@@ -2,6 +2,9 @@ import Accommodation from '../models/Admin.model.js';
 import { catchAsyncErrors } from '../middleware/catchAsyncErrors.js';
 import { User } from '../models/User.model.js';
 import Booking from '../models/Booking.model.js';
+import Testimonial from '../models/Testimonial.model.js';
+import Payment from '../models/Payment.model.js';
+import RefundRequest from '../models/RefundRequest.model.js';
 import mongoose from 'mongoose';
 
 export const createAccommodation = async (req, res, next) => {
@@ -324,4 +327,67 @@ console.log(req.body);
 
   // Fallback (shouldn't reach here normally)
   return res.status(500).json({ success: false, message: 'Unable to update payment status.' });
+});
+
+export const blockUser = catchAsyncErrors(async (req, res) => {
+  const { id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ success: false, message: "Invalid user ID" });
+  }
+
+  const user = await User.findById(id);
+  if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+  user.isBlocked = true;
+  await user.save();
+
+  res.status(200).json({ success: true, message: "User blocked successfully" });
+});
+export const unblockUser = catchAsyncErrors(async (req, res) => {
+  const { id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ success: false, message: "Invalid user ID" });
+  }
+
+  const user = await User.findById(id);
+  if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+  user.isBlocked = false;
+  await user.save();
+
+  res.status(200).json({ success: true, message: "User unblocked successfully" });
+});
+
+export const getUserDetails = catchAsyncErrors(async (req, res) => {
+  const { id } = req.params;
+
+  // Validate ID
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ success: false, message: "Invalid user ID" });
+  }
+
+  // Fetch user
+  const user = await User.findById(id).select("-password");
+  if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+  // Fetch related data
+  const bookings = await Booking.find({ user: id }).sort({ createdAt: -1 }).lean();
+  const reviews = await Testimonial.find({ user: id }).sort({ createdAt: -1 }).lean();
+  const payments = await Payment.find({ user: id }).sort({ createdAt: -1 }).lean();
+  const refunds = await RefundRequest.find({ user: id }).sort({ createdAt: -1 }).lean();
+
+  res.status(200).json({
+    success: true,
+    data: {
+      user,
+      histories: {
+        bookings,
+        reviews,
+        payments,
+        refunds,
+      },
+    },
+  });
 });

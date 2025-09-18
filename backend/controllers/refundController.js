@@ -62,48 +62,59 @@ export const deleteRefundRequest = async (req, res, next) => {
 
 export const getAllRefundRequests = async (req, res, next) => {
   try {
-    const { page = 1, limit = 10, status, method, userId } = req.query;
+    const { page = 1, limit = 10, status, method, email, name } = req.query;
     const role = String(req.user.role || "").toLowerCase();
 
     // base filter
     const filter = {};
 
-    // if role is not admin, restrict to only the user's refunds
+    // Non-admin can only see their own refunds
     if (role !== "admin") {
       filter.user = req.user._id;
-    } else {
-      // optional filter by userId (admin only)
-      if (userId) filter.user = userId;
     }
 
-    // optional filters
+    // Optional filters
     if (status) filter.status = status;
     if (method) filter.method = method;
 
-    // pagination
+    // Pagination
     const pageNumber = Number(page) || 1;
     const pageSize = Number(limit) || 10;
 
-    const [refunds, total] = await Promise.all([
-      RefundRequest.find(filter)
-        .populate("booking", "groupName stayDate") // select fields to populate
-        .populate("user", "name email") // select fields to populate
-        .populate("payment", "paymentId amount status")
-        .sort({ createdAt: -1 })
-        .skip((pageNumber - 1) * pageSize)
-        .limit(pageSize),
-      RefundRequest.countDocuments(filter),
-    ]);
+    // Build query
+    let query = RefundRequest.find(filter)
+      .populate("booking", "groupName stayDate")
+      .populate("user", "name email")
+      .populate("payment", "paymentId amount status")
+      .sort({ createdAt: -1 })
+      .skip((pageNumber - 1) * pageSize)
+      .limit(pageSize);
+
+    // If admin wants to filter by email or name
+    if (role === "admin" && (email || name)) {
+      // Use regex search on populated user fields
+      query = query.populate({
+        path: "user",
+        match: {
+          ...(email ? { email: { $regex: email, $options: "i" } } : {}),
+          ...(name ? { name: { $regex: name, $options: "i" } } : {}),
+        },
+      });
+    }
+
+    const refunds = await query;
+    const total = await RefundRequest.countDocuments(filter);
 
     return res.status(200).json({
       success: true,
       total,
       page: pageNumber,
       pages: Math.ceil(total / pageSize),
-      data: refunds,
+      data: refunds.filter(r => r.user), // remove refunds where populate didn't match
     });
   } catch (err) {
     console.error("Error fetching refund requests:", err);
     return res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+

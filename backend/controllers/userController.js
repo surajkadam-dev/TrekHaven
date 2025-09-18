@@ -3,6 +3,8 @@ import ErrorHandler from '../middleware/error.js';
 import {sendToken }from '../utils/jwtToken.js';
 import { User } from '../models/User.model.js';
 import {OAuth2Client} from "google-auth-library"
+import admin from "firebase-admin";
+
 import {config} from "dotenv"
 config({
   path:"./config/config.env"
@@ -11,7 +13,7 @@ const client=new OAuth2Client(process.env.GOOGLE_CLIENT_ID,process.env.GOOGLE_CL
 export const register = catchAsyncErrors(async (req, res) => {
   const { name, email, mobile, password, role, adminKey } = req.body;
 
-  // Validate required fields for local registration
+  // Validate required fields
   if (!name || !email || !mobile || !password || !role) {
     return res.status(400).json({ success: false, message: 'All fields are required.' });
   }
@@ -31,13 +33,19 @@ export const register = catchAsyncErrors(async (req, res) => {
     return res.status(403).json({ success: false, message: 'Invalid admin secret key.' });
   }
 
-  // Existing user check
-  const existing = await User.findOne({ email });
-  if (existing) {
-    return res.status(409).json({ success: false, message: 'Email is already registered.' });
+  // Check if email already exists (manual or Google)
+  const existingUser = await User.findOne({ email });
+  if (existingUser) {
+    return res.status(409).json({
+      success: false,
+      message: 'Email is already registered. Please login.'
+    });
   }
 
-  // Create user with local provider
+  // Check if mobile number already exists
+  
+
+  // Create new manual user
   const user = await User.create({ 
     name, 
     email, 
@@ -45,16 +53,90 @@ export const register = catchAsyncErrors(async (req, res) => {
     password, 
     role, 
     isAdmin: role === "admin",
-    provider: 'local' // Explicitly set provider to local
+    provider: 'local'
   });
 
-  // Send JWT token in response
+  // Send JWT token
   sendToken(user, 201, res, 'User registered successfully');
+   await sendEmail({
+  to: email,   // new user email
+  subject: "करपेवाईडी होम स्टे मध्ये आपले स्वागत आहे 👋 – नोंदणी यशस्वी",
+  html: `
+  <!doctype html>
+  <html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+  </head>
+  <body style="margin:0;padding:0;background-color:#f4f6f8;">
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+      <tr>
+        <td align="center" style="padding:24px 16px;">
+          <table width="600" cellpadding="0" cellspacing="0" role="presentation" 
+                 style="max-width:600px;background:#ffffff;border-radius:8px;
+                 overflow:hidden;box-shadow:0 6px 18px rgba(20,20,20,0.08);">
+
+            <!-- content -->
+            <tr>
+              <td style="padding:32px 36px;font-family:Arial, Helvetica, sans-serif;color:#0f1724;text-align:center;">
+                <h1 style="margin:0;font-size:24px;font-weight:700;color:#0b2545;">
+                  करपेवाईडी होम स्टे मध्ये आपले स्वागत आहे 👋
+                </h1>
+                <p style="margin:20px 0 0;font-size:15px;line-height:1.6;color:#4b5563;">
+                  नमस्कार <strong>${email}</strong>,<br><br>
+                  आम्हाला आनंद आहे की आपण आमच्या होम स्टे आणि जेवण सेवेसाठी नोंदणी केली आहे! 🎉  
+                  तुमची नोंदणी यशस्वीरीत्या पूर्ण झाली आहे.  
+                </p>
+                <p style="margin:20px 0 0;font-size:15px;line-height:1.6;color:#4b5563;">
+                  आपल्या मुक्कामादरम्यान आम्ही आपल्याला आरामदायक मुक्काम आणि स्वादिष्ट जेवण अनुभव देऊ.  
+                  कोणत्याही बदलांसाठी किंवा प्रश्नांसाठी आम्हाला संपर्क साधा.  
+                </p>
+
+                <p style="margin:32px 0 0;font-size:14px;color:#0f1724;font-weight:600;">
+                  शुभेच्छा,<br>Team करपेवाईडी होम स्टे
+                </p>
+
+                <p style="margin-top:30px;font-size:12px;color:#9aa3b2;">
+                  हे स्वयंचलित सूचना ईमेल आहे. कृपया उत्तर देऊ नका.
+                </p>
+              </td>
+            </tr>
+
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+  </html>
+  `
 });
+});
+
+export const checkMobile = async (req, res) => {
+  try {
+    const { number } = req.query;
+
+    if (!number || !/^\d{10}$/.test(number)) {
+      return res.status(400).json({ message: "वैध 10-अंकी मोबाइल नंबर द्या" });
+    }
+
+    const user = await User.findOne({ mobile: number });
+
+    if (user) {
+      return res.json({ available: false, message: "मोबाइल आधीपासून नोंदणीकृत आहे" });
+    } else {
+      return res.json({ available: true, message: "मोबाइल वापरण्यास उपलब्ध आहे" });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ available: false, message: "सर्व्हर त्रुटी" });
+  }
+};
 
 export const login = catchAsyncErrors(async (req, res, next) => {
   const { role, email, password } = req.body;
 
+  // Validate input
   if (!role || !email || !password) {
     return res.status(400).json({
       success: false,
@@ -62,98 +144,52 @@ export const login = catchAsyncErrors(async (req, res, next) => {
     });
   }
 
-  const user = await User.findOne({ email }).select("+password");
+  // Find user by email and provider 'local' only
+  const user = await User.findOne({ email, provider: 'local' }).select("+password");
 
   if (!user) {
     return res.status(401).json({
       success: false,
-      error: "Invalid email or password"
+      error: "Invalid email or password or role"
     });
   }
 
-  // Check if user registered with Google
-  if (user.provider === 'google') {
-    return res.status(400).json({
-      success: false,
-      error: "This account uses Google authentication. Please sign in with Google."
-    });
-  }
-
-  // Check if the password matches
+  // Check password
   const isPasswordMatched = await user.comparePassword(password);
   if (!isPasswordMatched) {
     return res.status(401).json({
       success: false,
-      error: "Invalid password"
+      error: "Invalid email or password or role"
     });
   }
 
-  // Check if the user's role matches the provided role
-  if (user.role !== role) {
-    return res.status(400).json({
-      success: false,
-      error: "Invalid user role"
-    });
-  }
+  // Check role
+ 
 
+
+  // Admin check
   if (role === "admin" && !user.isAdmin) {
     return next(new ErrorHandler("Unauthorized access. You are not an admin.", 403));
   }
 
+  if(user.isBlocked)
+  {
+    return res.status(400).json({
+      success:false,
+      error:"You are blocked please contact to admin"
+    })
+  }
+
+  // Send JWT
   sendToken(user, 200, res, "User login successfully");
 });
 
-export const googleLoginOnly = catchAsyncErrors(async (req, res, next) => {
+
+
+export const googleAuth = catchAsyncErrors(async (req, res, next) => {
   const { idToken } = req.body;
-
-  if (!idToken) {
-    return res.status(400).json({
-      success: false,
-      error: "Please provide Google ID token"
-    });
-  }
-
-  try {
-    const ticket = await client.verifyIdToken({
-      idToken,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
-
-    const payload = ticket.getPayload();
-    const { email, sub: googleId } = payload;
-
-    // Check if user exists
-    const user = await User.findOne({ email, provider: 'google' });
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: "User not found. Please register first."
-      });
-    }
-
-    // Optional: verify googleId matches the stored one
-    if (user.googleId !== googleId) {
-      return res.status(401).json({
-        success: false,
-        error: "Google ID mismatch. Login failed."
-      });
-    }
-
-    // Send JWT
-    sendToken(user, 200, res, "User logged in successfully with Google");
-
-  } catch (error) {
-    return res.status(401).json({
-      success: false,
-      error: "Invalid Google token"
-    });
-  }
-});
-
-export const googleRegister = catchAsyncErrors(async (req, res, next) => {
-  const { idToken} = req.body;
-
+ 
+   
   if (!idToken) {
     return res.status(400).json({ success: false, error: "Please provide Google ID token" });
   }
@@ -171,53 +207,97 @@ export const googleRegister = catchAsyncErrors(async (req, res, next) => {
       return res.status(400).json({ success: false, error: "Google account does not have an email" });
     }
 
-    // Check if a user already exists with this email
-    const existing = await User.findOne({ email });
+    // Check if user exists by googleId ONLY
+    let user = await User.findOne({ googleId});
+    if(user.isBlocked)
+  {
+    return res.status(400).json({
+      success:false,
+      error:"You are blocked please contact to admin"
+    })
+  }
+  if(user.provider!== "google")
+  {
+     return res.status(400).json({
+      success:false,
+      error:"You are register in manualy please login with email and paasword "
+    })
+  }
 
-    if (existing) {
-      // If already registered using Google
-      if (existing.provider === "google") {
-        // Optional: check googleId match
-        if (existing.googleId && existing.googleId !== googleId) {
-          return res.status(409).json({
-            success: false,
-            error: "An account with this email is already registered with Google (different Google ID).",
-          });
-        }
-        return res.status(409).json({
-          success: false,
-          error: "User already registered with Google. Please login.",
-        });
-      }
-
-      // If registered manually with email/password
-      return res.status(409).json({
-        success: false,
-        error: "This email is already registered with manual authentication. Please login using email & password.",
+    if (user) {
+      // Existing Google user → login
+      sendToken(user, 200, res, "User logged in successfully with Google");
+    } else {
+      // Create new Google user regardless of email
+      const newUser = await User.create({
+        name,
+        email,
+        provider: "google",
+        googleId,
+        avatar: picture || null,
+        role: "trekker",
+        isAdmin: false,
       });
+
+      sendToken(newUser, 201, res, "User registered successfully with Google");
+       await sendEmail({
+  to: email,   // new user email
+  subject: "करपेवाईडी होम स्टे मध्ये आपले स्वागत आहे 👋 – नोंदणी यशस्वी",
+  html: `
+  <!doctype html>
+  <html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+  </head>
+  <body style="margin:0;padding:0;background-color:#f4f6f8;">
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+      <tr>
+        <td align="center" style="padding:24px 16px;">
+          <table width="600" cellpadding="0" cellspacing="0" role="presentation" 
+                 style="max-width:600px;background:#ffffff;border-radius:8px;
+                 overflow:hidden;box-shadow:0 6px 18px rgba(20,20,20,0.08);">
+
+            <!-- content -->
+            <tr>
+              <td style="padding:32px 36px;font-family:Arial, Helvetica, sans-serif;color:#0f1724;text-align:center;">
+                <h1 style="margin:0;font-size:24px;font-weight:700;color:#0b2545;">
+                  करपेवाईडी होम स्टे मध्ये आपले स्वागत आहे 👋
+                </h1>
+                <p style="margin:20px 0 0;font-size:15px;line-height:1.6;color:#4b5563;">
+                  नमस्कार <strong>${email}</strong>,<br><br>
+                  आम्हाला आनंद आहे की आपण आमच्या होम स्टे आणि जेवण सेवेसाठी नोंदणी केली आहे! 🎉  
+                  तुमची नोंदणी यशस्वीरीत्या पूर्ण झाली आहे.  
+                </p>
+                <p style="margin:20px 0 0;font-size:15px;line-height:1.6;color:#4b5563;">
+                  आपल्या मुक्कामादरम्यान आम्ही आपल्याला आरामदायक मुक्काम आणि स्वादिष्ट जेवण अनुभव देऊ.  
+                  कोणत्याही बदलांसाठी किंवा प्रश्नांसाठी आम्हाला संपर्क साधा.  
+                </p>
+
+                <p style="margin:32px 0 0;font-size:14px;color:#0f1724;font-weight:600;">
+                  शुभेच्छा,<br>Team करपेवाईडी होम स्टे
+                </p>
+
+                <p style="margin-top:30px;font-size:12px;color:#9aa3b2;">
+                  हे स्वयंचलित सूचना ईमेल आहे. कृपया उत्तर देऊ नका.
+                </p>
+              </td>
+            </tr>
+
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+  </html>
+  `
+});
     }
-
-    // Role handling: default to 'trekker'. Allow 'admin' only if correct adminKey provided.
-
-
-    const newUser = await User.create({
-      name,
-      email,
-      provider: "google",
-      googleId,
-      avatar: picture || null,
-      role: "trekker",
-      isAdmin: false,
-    });
-
-    // send JWT and response (201 Created)
-    sendToken(newUser, 201, res, "User registered successfully with Google");
   } catch (err) {
-    console.error("googleRegister error:", err);
-    return res.status(401).json({ success: false, error: "Invalid Google token" });
+    console.error("googleAuth error:", err);
+    return res.status(401).json({ success: false, error: "You are not regiter with google" });
   }
 });
-
 
 export const logout = async (req, res) => {
   try {

@@ -32,6 +32,7 @@ mobile: {
   isAdmin: { type: Boolean, default: false },
     provider: { type: String, enum: ['local', 'google'], default: 'local' },
   googleId: { type: String, unique: true, sparse: true },
+  isBlocked:{type:Boolean, default:false},
   avatar:{
     type:String,
     default:""
