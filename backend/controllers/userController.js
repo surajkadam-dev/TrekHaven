@@ -4,6 +4,7 @@ import {sendToken }from '../utils/jwtToken.js';
 import { User } from '../models/User.model.js';
 import {OAuth2Client} from "google-auth-library"
 import admin from "firebase-admin";
+import { sendEmail } from '../utils/emailService.js';
 
 import {config} from "dotenv"
 config({
@@ -433,3 +434,68 @@ export const updateProfile = catchAsyncErrors(async (req, res, next) => {
 
   sendToken(user,200,res,"Profile updated successfully");
 });
+
+export const handleContactFormSubmit = async (req,res) => {
+  const { name, email, phone, message } = req.body;
+
+
+
+  try {
+    await sendEmail({
+      to: process.env.SMTP_MAIL, // This will send the email to your business inbox
+      subject: `New Contact Form Submission from ${name}`,
+      text: `
+You have received a new inquiry from your Contact Us page.
+
+Name: ${name}
+Email: ${email}
+Phone: ${phone}
+
+Message:
+${message}
+      `,
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <h2 style="color:#4b5320;">New Contact Form Submission</h2>
+          <p>You have received a new inquiry from your Contact Us page.</p>
+          <table cellpadding="6" style="border-collapse: collapse;">
+            <tr>
+              <td style="font-weight:bold;">Name:</td>
+              <td>${name}</td>
+            </tr>
+            <tr>
+              <td style="font-weight:bold;">Email:</td>
+              <td>${email}</td>
+            </tr>
+            <tr>
+              <td style="font-weight:bold;">Phone:</td>
+              <td>${phone}</td>
+            </tr>
+            <tr>
+              <td style="font-weight:bold; vertical-align: top;">Message:</td>
+              <td>${message}</td>
+            </tr>
+          </table>
+          <br/>
+          <p style="color:#777;font-size:12px;">This email was generated from the contact form on your website.</p>
+        </div>
+      `
+    });
+
+    return res.status(200).json(({
+      success:true,
+      message:"Contact form email sent successfully!"
+    }))
+
+  } catch (error) {
+    console.log(error);
+      return res.status(400).json(({
+      success:false,
+      message:"Failed to send contact form email:"
+    }))
+  }
+};
+
+
+
+

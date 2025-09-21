@@ -41,7 +41,6 @@ export const createBookingOrder = async (req, res, next) => {
       email,
       phone
     } = req.body;
-console.log("body: ",req.body);
   
 
     // Validation
@@ -63,7 +62,15 @@ console.log("body: ",req.body);
     if (isNaN(date.getTime())) {
       return res.json({ success: false, error: "Invalid stay date" });
     }
-
+const now = new Date();
+const cutoffTime=17;
+if(date.toDateString()=== new Date().toDateString() && now.getHours() >= cutoffTime)
+{
+  return res.json({
+    success:false,
+    error:"Same-day booking closed after 5 PM."
+  })
+}
     // Calculate expected amount
     const mealRate = mealType === "nonveg" ? accommodation.nonVegRate : accommodation.vegRate;
     const mealAmount = needStay ? mealRate * stayNight * size : mealRate * size;
@@ -342,7 +349,6 @@ if (event === "payment.captured") {
   `
 });
 
-  console.log("✅ Booking confirmed:", booking._id);
 } else {
         console.log("❌ Payment failed, booking not created.");
       }
@@ -367,6 +373,7 @@ if (event === "payment.captured") {
             status: { $in: ["initiated", "processing"] },
           });
         }
+        
       }
 
       if (!refundReq) {

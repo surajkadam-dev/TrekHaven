@@ -12,13 +12,14 @@ import refundRoutes from "./Routes/refundRoutes.js"
 import { razorpayWebhook } from './controllers/bookingController.js';
 import { bookingCronJob } from './cronJobs/bookingCron.js';
 import otpRoutes from './Routes/otpRoutes.js';
+import paymentRoutes from "./Routes/paymentRoutes.js"
 const app=express();
 config({
   path:'./config/config.env'
 });
  app.use(cors(
   {
-origin:[process.env.FRONTEND_URL],
+origin:[process.env.FRONTEND_URL], //process.env.FRONTEND_URL],
 methods:["GET","POST","PUT","DELETE"],
 credentials:true
   }
@@ -38,6 +39,7 @@ app.post("/razorpay/webhook", express.raw({ type: "application/json" }), razorpa
   app.use("/api/v1/testimonial",testimonialRoutes);
   app.use("/api/v1/refund",refundRoutes);
   app.use("/api/v1/otp",otpRoutes);
+  app.use("/api/v1/payments",paymentRoutes);
  connection();
  bookingCronJob();
 

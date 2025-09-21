@@ -83,8 +83,8 @@ export const getAllRefundRequests = async (req, res, next) => {
 
     // Build query
     let query = RefundRequest.find(filter)
-      .populate("booking", "groupName stayDate")
-      .populate("user", "name email")
+      .populate("booking", "groupName stayDate groupSize")
+      .populate("user", "name email mobile")
       .populate("payment", "paymentId amount status")
       .sort({ createdAt: -1 })
       .skip((pageNumber - 1) * pageSize)

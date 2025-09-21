@@ -6,7 +6,7 @@ import Testimonial from '../models/Testimonial.model.js';
 import Payment from '../models/Payment.model.js';
 import RefundRequest from '../models/RefundRequest.model.js';
 import mongoose from 'mongoose';
-
+import { getBookedSeatsForDate } from '../helper/capacity.js';
 export const createAccommodation = async (req, res, next) => {
   try {
     const {  maxMembers, vegRate, nonVegRate, pricePerNight } = req.body;
@@ -31,6 +31,7 @@ export const createAccommodation = async (req, res, next) => {
 export const getAccommodation = async (req, res, next) => {
   try {
     // Use await + lean() to get plain JS objects
+   
     const data = await Accommodation.find({})
 
     if (!data || data.length === 0) {
@@ -391,3 +392,31 @@ export const getUserDetails = catchAsyncErrors(async (req, res) => {
     },
   });
 });
+
+export const getBookingsByDate = async (req, res) => {
+  const { stayDate } = req.query;
+
+  try {
+    const totalBooked = await getBookedSeatsForDate(stayDate);
+
+    if (totalBooked === 0) {
+      return res.status(404).json({
+        success: false,
+        totalBooked: 0,
+        error: "No Booked Members",
+      });
+    }
+
+    // Only send success if totalBooked > 0
+    res.status(200).json({
+      success: true,
+      totalBooked,
+      stayDate: (stayDate ? new Date(stayDate) : new Date())
+        .toISOString()
+        .split("T")[0],
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message || "Server Error" });
+  }
+};
+
