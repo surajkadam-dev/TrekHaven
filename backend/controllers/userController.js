@@ -476,7 +476,7 @@ ${message}
         </div>
       `
     });
-
+console.log("email send");
     return res.status(200).json(({
       success:true,
       message:"Contact form email sent successfully!"
