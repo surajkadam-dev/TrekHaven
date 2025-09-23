@@ -19,7 +19,7 @@ config({
 });
  app.use(cors(
   {
-origin:[process.env.FRONTEND_URL], //process.env.FRONTEND_URL],
+origin:["https://trekbase.netlify.app"], //process.env.FRONTEND_URL],
 methods:["GET","POST","PUT","DELETE"],
 credentials:true
   }
