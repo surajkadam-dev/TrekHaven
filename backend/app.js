@@ -1,5 +1,5 @@
 import express from 'express';
-import {config} from 'dotenv';
+
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import bodyParser from 'body-parser';
@@ -14,7 +14,7 @@ import { bookingCronJob } from './cronJobs/bookingCron.js';
 import otpRoutes from './Routes/otpRoutes.js';
 import paymentRoutes from "./Routes/paymentRoutes.js"
 const app=express();
-
+dotenv.config();
  app.use(cors(
   {
 origin:["https://trekbase.netlify.app"], //process.env.FRONTEND_URL],
