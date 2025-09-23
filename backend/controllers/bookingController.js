@@ -15,9 +15,6 @@ import {autoCompleteBookings} from "../services/bookingService.js"
 
 import { v4 as uuidv4 } from 'uuid';
 
-config({
-  path:'./config/config.env'
-});
 
 const razorpay = new Razorpay({
   key_id:process.env.RAZORPAY_KEY_ID,
