@@ -14,9 +14,7 @@ import { bookingCronJob } from './cronJobs/bookingCron.js';
 import otpRoutes from './Routes/otpRoutes.js';
 import paymentRoutes from "./Routes/paymentRoutes.js"
 const app=express();
-config({
-  path:'./config/config.env'
-});
+
  app.use(cors(
   {
 origin:["https://trekbase.netlify.app"], //process.env.FRONTEND_URL],
