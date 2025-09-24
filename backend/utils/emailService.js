@@ -4,7 +4,7 @@ import nodemailer from "nodemailer";
 
 
 
-const transporter = nodemailer.createTransport({
+export const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",       // don’t use "service" here
   port: 465,                    // SSL
   secure: true,                 // true because port 465
