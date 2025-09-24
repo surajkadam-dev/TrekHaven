@@ -16,7 +16,7 @@ import paymentRoutes from "./Routes/paymentRoutes.js"
 const app=express();
  app.use(cors(
   {
-origin:["https://trekbase.netlify.app"], //process.env.FRONTEND_URL],
+origin:[process.env.FRONTEND_URL], //process.env.FRONTEND_URL],
 methods:["GET","POST","PUT","DELETE"],
 credentials:true
   }
