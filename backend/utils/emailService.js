@@ -1,18 +1,20 @@
 import nodemailer from "nodemailer";
 
-
-
-
-
 export const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",       // don’t use "service" here
-  port: 465,                    // SSL
-  secure: true,                 // true because port 465
+  host: "smtp.gmail.com",
+  port: 587,  // Try port 587 instead of 465
+  secure: false, // false for port 587
   auth: {
-    user: process.env.SMTP_MAIL,      // your Gmail
-    pass: process.env.SMTP_PASSWORD,  // your Gmail App Password
+    user: process.env.SMTP_MAIL,
+    pass: process.env.SMTP_PASSWORD,
   },
+  tls: {
+    rejectUnauthorized: false // May help with certificate issues
+  },
+  connectionTimeout: 30000, // Increase timeout to 30 seconds
+  socketTimeout: 30000
 });
+
 transporter.verify((error, success) => {
   if (error) {
     console.error("SMTP error:", error);
@@ -20,12 +22,19 @@ transporter.verify((error, success) => {
     console.log("Server is ready to send emails");
   }
 });
-export const sendEmail = async ({ to, subject, text,html }) => {
-  await transporter.sendMail({
-    from:`"Karpewadi Homestay" <${process.env.SMTP_MAIL}>`,
-    to,
-    subject,
-    text,
-    html
-  });
+
+export const sendEmail = async ({ to, subject, text, html }) => {
+  try {
+    await transporter.sendMail({
+      from: `"Karpewadi Homestay" <${process.env.SMTP_MAIL}>`,
+      to,
+      subject,
+      text,
+      html
+    });
+    console.log("Email sent successfully");
+  } catch (error) {
+    console.error("Error sending email:", error);
+    throw error;
+  }
 };
