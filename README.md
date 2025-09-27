@@ -1,26 +1,25 @@
-# BookingStay
+# TrekHaven
 
 A full-stack booking platform for homestays and treks, featuring user registration, booking management, payment processing, admin dashboard, and more.
 
 ## Project Structure
 
 ```
-BookingStay/
-├── Booking_stay_backend/
-│   ├── backend/
-│   │   ├── app.js
-│   │   ├── server.js
-│   │   ├── config/
-│   │   ├── controllers/
-│   │   ├── cronJobs/
-│   │   ├── database/
-│   │   ├── helper/
-│   │   ├── middleware/
-│   │   ├── models/
-│   │   ├── Routes/
-│   │   ├── services/
-│   │   └── utils/
-│   └── .gitignore
+TrekHaven/
+│── backend/
+│     ├── app.js
+│     ├── server.js
+│     ├── config/
+│     ├── controllers/
+│     ├── cronJobs/
+│     ├── database/
+│     ├── helper/
+│     ├── middleware/
+│     ├── models/
+│     ├── Routes/
+│     ├── services/
+│      └── utils/
+│   ── .gitignore
 ├── frontend/
 │   ├── public/
 │   ├── src/
@@ -54,7 +53,7 @@ BookingStay/
 
 1. Navigate to backend folder:
     ```sh
-    cd Booking_stay_backend/backend
+    cd backend
     ```
 2. Install dependencies:
     ```sh
@@ -70,7 +69,7 @@ BookingStay/
 
 1. Navigate to frontend folder:
     ```sh
-    cd ../frontend
+    cd frontend
     ```
 2. Install dependencies:
     ```sh
