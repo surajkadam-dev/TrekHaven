@@ -143,7 +143,7 @@ export const login = catchAsyncErrors(async (req, res, next) => {
   // Find user by email and provider 'local' only
   const user = await User.findOne({ email, provider: 'local' }).select("+password");
 
-  if (!user) {
+  if (!user && user.role != role) {
     return res.status(401).json({
       success: false,
       error: "Invalid email or password or role"
