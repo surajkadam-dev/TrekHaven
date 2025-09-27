@@ -5,11 +5,6 @@ import { User } from '../models/User.model.js';
 import {OAuth2Client} from "google-auth-library"
 import admin from "firebase-admin";
 import { sendEmail } from '../utils/emailService.js';
-
-import {config} from "dotenv"
-config({
-  path:"./config/config.env"
-});
 const client=new OAuth2Client(process.env.GOOGLE_CLIENT_ID,process.env.GOOGLE_CLIENT_SECRET);
 export const register = catchAsyncErrors(async (req, res) => {
   const { name, email, mobile, password, role, adminKey } = req.body;
@@ -166,7 +161,12 @@ export const login = catchAsyncErrors(async (req, res, next) => {
 
   // Check role
  
-
+  if (user.role !== role) {
+    return res.status(401).json({
+      success: false,
+      error: "Invalid email or password or role"
+    });
+  }
 
   // Admin check
   if (role === "admin" && !user.isAdmin) {
@@ -481,7 +481,7 @@ ${message}
         </div>
       `
     });
-
+console.log("email send");
     return res.status(200).json(({
       success:true,
       message:"Contact form email sent successfully!"
