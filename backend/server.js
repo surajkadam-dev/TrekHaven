@@ -1,5 +1,6 @@
 import app from "./app.js";
 import { config } from "dotenv";
+import { transporter } from "./utils/emailService.js";
 
 config({
   path: './config/config.env'
