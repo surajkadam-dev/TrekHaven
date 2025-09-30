@@ -52,34 +52,34 @@ TrekHaven/
 ### Backend Setup
 
 1. Navigate to backend folder:
-    ```sh
-    cd backend
-    ```
+   ```sh
+   cd Booking_stay_backend/backend
+   ```
 2. Install dependencies:
-    ```sh
-    npm install
-    ```
+   ```sh
+   npm install
+   ```
 3. Configure environment variables in `config/config.env`.
 4. Start the server:
-    ```sh
-    npm start
-    ```
+   ```sh
+   npm start
+   ```
 
 ### Frontend Setup
 
 1. Navigate to frontend folder:
-    ```sh
-    cd frontend
-    ```
+   ```sh
+   cd ../frontend
+   ```
 2. Install dependencies:
-    ```sh
-    npm install
-    ```
+   ```sh
+   npm install
+   ```
 3. Configure environment variables in `.env`.
 4. Start the development server:
-    ```sh
-    npm run dev
-    ```
+   ```sh
+   npm run dev
+   ```
 
 ## Folder Overview
 
@@ -93,11 +93,11 @@ TrekHaven/
 ## Scripts
 
 - **Backend**
-    - `npm start` — Start backend server
-    - `npm run dev` — Start backend in development mode (nodemon)
+  - `npm start` — Start backend server
+  - `npm run dev` — Start backend in development mode (nodemon)
 - **Frontend**
-    - `npm run dev` — Start frontend development server
-    - `npm run build` — Build frontend for production
+  - `npm run dev` — Start frontend development server
+  - `npm run build` — Build frontend for production
 
 ## Contributing
 
