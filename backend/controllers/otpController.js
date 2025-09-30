@@ -7,6 +7,8 @@ const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString()
 export const sendEmailOTP = async (req, res) => {
   try {
     const { email } = req.body;
+    console.log(email); 
+
 
     if (!email) return res.status(400).json({ message: "Email is required" });
 
@@ -23,7 +25,7 @@ export const sendEmailOTP = async (req, res) => {
 await redis.set(`otp:${email}`, otp, "EX", 300);
 
 await sendEmail({
-  to: `"Karpewadi Homestay" <${email}>`, // display name + actual email
+  to: email,
   subject: "Karpewadi Homestay | Email Verification OTP",
   html: `
     <!doctype html>

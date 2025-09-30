@@ -1,17 +1,12 @@
 import app from "./app.js";
 import { config } from "dotenv";
-import { transporter } from "./utils/emailService.js";
 
-
-app.listen(process.env.PORT, () => {
-  console.log(`✅ Server running on port ${process.env.PORT}`);
-
-  // verify SMTP transporter at startup
-  transporter.verify((error, success) => {
-    if (error) {
-      console.error("❌ SMTP not ready:", error.message);
-    } else {
-      console.log("✅ SMTP ready to send messages");
-    }
-  });
+config({
+  path: './config/config.env'
 });
+
+app.listen(process.env.PORT,()=>
+{
+  
+  console.log(`server running on ${process.env.PORT}`)
+})

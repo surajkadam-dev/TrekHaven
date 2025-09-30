@@ -2,14 +2,7 @@ import mongoose from "mongoose";
 import Booking from "../models/Booking.model.js";
 import Accommodation from "../models/Admin.model.js";
 
-export async function getBookedSeatsForDate(accommodationId, stayDateInput) {
-  // find the accommodation if id not provided
-  let accommodationDocId = accommodationId;
-  if (!accommodationDocId) {
-    const ac = await Accommodation.findOne().select("_id");
-    if (!ac) throw new Error("Accommodation not found");
-    accommodationDocId = ac._id;
-  }
+export async function getBookedSeatsForDate(stayDateInput) {
 
   const start = new Date(stayDateInput);
   start.setHours(0, 0, 0, 0);
@@ -19,7 +12,6 @@ export async function getBookedSeatsForDate(accommodationId, stayDateInput) {
   const agg = await Booking.aggregate([
     {
       $match: {
-        accommodation: new mongoose.Types.ObjectId(accommodationDocId),
         stayDate: { $gte: start, $lt: end },
         status: { $nin: ["cancelled","completed"] } // exclude cancelled so they free seats
       }

@@ -15,6 +15,9 @@ import {autoCompleteBookings} from "../services/bookingService.js"
 
 import { v4 as uuidv4 } from 'uuid';
 
+config({
+  path:'./config/config.env'
+});
 
 const razorpay = new Razorpay({
   key_id:process.env.RAZORPAY_KEY_ID,
@@ -103,7 +106,7 @@ end.setUTCDate(end.getUTCDate() + 1);
 
   if (duplicate) return res.status(400).json({ success: false, error: "You already have a booking for this date." });
 
-   const alreadyBooked = await getBookedSeatsForDate(accommodationId, start);
+   const alreadyBooked = await getBookedSeatsForDate(start);
     const seatsLeft = accommodation.maxMembers - alreadyBooked;
    
     if (size > seatsLeft) {
@@ -1063,3 +1066,4 @@ export const getBookingById = async (req, res, next) => {
     next(error);
   }
 };
+
