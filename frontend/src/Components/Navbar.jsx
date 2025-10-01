@@ -9,6 +9,8 @@ import {
 } from "../store/slices/userSlice";
 
 import { toast } from "react-toastify";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -313,6 +315,7 @@ const Navbar = () => {
           )}
         </div>
       </div>
+      <ToastContainer position="top-right" theme="dark" />
     </nav>
   );
 };

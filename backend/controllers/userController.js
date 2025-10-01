@@ -4,6 +4,7 @@ import {sendToken }from '../utils/jwtToken.js';
 import { User } from '../models/User.model.js';
 import {OAuth2Client} from "google-auth-library"
 import { sendEmail } from '../utils/emailService.js';
+import crypto from "crypto";
 
 import {config} from "dotenv"
 config({
@@ -136,6 +137,8 @@ export const checkMobile = async (req, res) => {
 export const login = catchAsyncErrors(async (req, res, next) => {
   const { role, email, password } = req.body;
 
+  console.log(req.body);
+
   // Validate input
   if (!role || !email || !password) {
     return res.status(400).json({
@@ -165,13 +168,20 @@ export const login = catchAsyncErrors(async (req, res, next) => {
 
   // Check role
  
+<<<<<<< HEAD
+=======
+
+>>>>>>> 48ebd05 (Email Notification Update)
   if(user.role !== role) {
     return res.status(401).json({
       success: false,
       error: "Invalid email or password or role"
     });
   }
+<<<<<<< HEAD
 
+=======
+>>>>>>> 48ebd05 (Email Notification Update)
   // Admin check
   if (role === "admin" && !user.isAdmin) {
     return next(new ErrorHandler("Unauthorized access. You are not an admin.", 403));
@@ -224,7 +234,11 @@ if(user)
     })
   }
 }
+<<<<<<< HEAD
 
+=======
+ 
+>>>>>>> 48ebd05 (Email Notification Update)
 
     if (user) {
       // Existing Google user → login
@@ -497,6 +511,363 @@ ${message}
   }
 };
 
+export const forgotPassword = catchAsyncErrors(async (req, res, next) => {
+  const { email } = req.body;
+
+  const user = await User.findOne({ email });
+  if (!user) {
+    return res.status(404).json({ success: false, error: "User not found" });
+  }
+
+  if (user.provider === "google") {
+    return res.status(400).json({
+      success: false,
+      error: "This account is registered with Google. Please login using Google.",
+    });
+  }
+
+  const resetToken = user.getResetPasswordToken();
+  await user.save({ validateBeforeSave: false });
+
+  const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+
+  try {
+await sendEmail({
+  to: user.email,
+  subject: "Reset Your Password - Karpewadi Homestay",
+  html: `
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password Reset - Karpewadi Homestay</title>
+    <style>
+      /* Reset Styles */
+      body, html {
+        margin: 0;
+        padding: 0;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        background-color: #f8faf7;
+      }
+      
+      /* Main Container */
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        background: #ffffff;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+        border: 1px solid #e5ebe2;
+      }
+      
+      /* Header */
+      .header {
+        background: linear-gradient(135deg, #389138 0%, #2a732a 100%);
+        color: #ffffff;
+        text-align: center;
+        padding: 30px 0;
+        position: relative;
+      }
+      
+      .logo {
+        font-size: 28px;
+        font-weight: bold;
+        margin-bottom: 8px;
+        letter-spacing: 0.5px;
+      }
+      
+      .tagline {
+        font-size: 14px;
+        opacity: 0.9;
+        font-weight: 300;
+      }
+      
+      /* Content */
+      .content {
+        padding: 40px;
+        color: #475a40;
+      }
+      
+      .greeting {
+        font-size: 20px;
+        font-weight: 600;
+        margin-bottom: 24px;
+        color: #3a4934;
+      }
+      
+      .message {
+        font-size: 16px;
+        line-height: 1.7;
+        margin-bottom: 24px;
+      }
+      
+      .instructions {
+        background: #f8faf7;
+        border-left: 4px solid #389138;
+        padding: 20px;
+        border-radius: 0 8px 8px 0;
+        margin: 30px 0;
+      }
+      
+      .instruction-list {
+        margin: 0;
+        padding-left: 20px;
+      }
+      
+      .instruction-list li {
+        margin-bottom: 12px;
+        line-height: 1.6;
+      }
+      
+      /* Button */
+      .button-container {
+        text-align: center;
+        margin: 40px 0;
+      }
+      
+      .button {
+        display: inline-block;
+        background: linear-gradient(135deg, #389138 0%, #2a732a 100%);
+        color: #ffffff;
+        padding: 16px 40px;
+        text-decoration: none;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 16px;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(56, 145, 56, 0.3);
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+      }
+      
+      .button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(56, 145, 56, 0.4);
+      }
+      
+      /* Security Notice */
+      .security-notice {
+        background: #fffbf0;
+        border: 1px solid #fde68a;
+        border-radius: 8px;
+        padding: 16px;
+        margin: 30px 0;
+        text-align: center;
+      }
+      
+      .security-icon {
+        color: #d97706;
+        font-weight: bold;
+        margin-right: 8px;
+      }
+      
+      /* Footer */
+      .footer {
+        background: #f8faf7;
+        padding: 30px 40px;
+        text-align: center;
+        border-top: 1px solid #e5ebe2;
+      }
+      
+      .footer-text {
+        font-size: 14px;
+        color: #768f6d;
+        line-height: 1.5;
+      }
+      
+      .contact-info {
+        margin-top: 20px;
+        font-size: 14px;
+        color: #5a7152;
+      }
+      
+      .social-links {
+        margin-top: 20px;
+      }
+      
+      .social-link {
+        color: #389138;
+        text-decoration: none;
+        margin: 0 10px;
+        font-size: 14px;
+      }
+      
+      /* Responsive */
+      @media only screen and (max-width: 600px) {
+        .content {
+          padding: 30px 25px;
+        }
+        
+        .header {
+          padding: 25px 0;
+        }
+        
+        .logo {
+          font-size: 24px;
+        }
+        
+        .button {
+          padding: 14px 30px;
+          font-size: 15px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <div class="header">
+        <div class="logo">🌿 Karapewadi Homestay</div>
+        <div class="tagline">Experience Nature's Embrace</div>
+      </div>
+      
+      <!-- Content -->
+      <div class="content">
+        <div class="greeting">Hello ${user.name || 'Valued Guest'},</div>
+        
+        <div class="message">
+          We received a request to reset your password for your Karapewadi Homestay account. 
+          To ensure the security of your account, please follow the instructions below to create a new password.
+        </div>
+        
+        <div class="instructions">
+          <strong>Reset Instructions:</strong>
+          <ol class="instruction-list">
+            <li>Click the <strong>"Reset Password"</strong> button below</li>
+            <li>Create a strong new password on the secure reset page</li>
+            <li>Confirm your new password to complete the process</li>
+            <li>You'll be automatically redirected to login with your new credentials</li>
+          </ol>
+        </div>
+        
+        <!-- Main Action Button -->
+        <div class="button-container">
+          <a href="${resetUrl}" class="button">Reset Your Password</a>
+        </div>
+        
+        <!-- Security Notice -->
+        <div class="security-notice">
+          <span class="security-icon">🔒</span>
+          <strong>Security Notice:</strong> This reset link will expire in <strong>2 Mintute</strong> for your protection. 
+          If you didn't request this reset, please ignore this email or contact our support team immediately.
+        </div>
+        
+        <div class="message">
+          If the button above doesn't work, copy and paste this link into your browser:<br>
+          <a href="${resetUrl}" style="color: #389138; word-break: break-all;">${resetUrl}</a>
+        </div>
+        
+        <div class="message">
+          Thank you for choosing Karapewadi Homestay. We look forward to welcoming you back!<br><br>
+          Warm regards,<br>
+          <strong>The Karapewadi Homestay Team</strong>
+        </div>
+      </div>
+      
+      <!-- Footer -->
+      <div class="footer">
+        <div class="footer-text">
+          This is an automated message. Please do not reply to this email.
+        </div>
+        
+        <div class="contact-info">
+          📍 Karapewadi Village, Maharashtra, India<br>
+          📞 +91 XXXXXXXXXX | ✉️ surajkadam1706004@gmail.com
+        </div>
+        
+        <div class="social-links">
+          <a href="#" class="social-link">Website</a> • 
+          <a href="#" class="social-link">Facebook</a> • 
+          <a href="#" class="social-link">Instagram</a>
+        </div>
+        
+        <div class="footer-text" style="margin-top: 20px; font-size: 12px; color: #9bb294;">
+          © 2024 Karpewadi Homestay. All rights reserved.<br>
+          Embracing nature, creating memories.
+        </div>
+      </div>
+    </div>
+  </body>
+  </html>
+  `,
+});
+
+
+    res.status(200).json({
+      success: true,
+      message: `Password reset email sent to ${user.email}`,
+    });
+  } catch (err) {
+    // Clear token if email fails
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+    await user.save({ validateBeforeSave: false });
+
+    console.error("ForgotPassword error:", err);
+    return res.status(500).json({ success: false, error: "Email could not be sent" });
+  }
+});
 
 
 
+export const resetPassword = catchAsyncErrors(async (req, res, next) => {
+  const { token } = req.params;
+  const { password, confirmPassword } = req.body;
+
+  if (!password || !confirmPassword) {
+    return res.status(400).json({ success: false, error: "Please provide all fields" });
+  }
+
+  if (password !== confirmPassword) {
+    return res.status(400).json({ success: false, error: "Passwords do not match" });
+  }
+
+  const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+  const user = await User.findOne({
+    resetPasswordToken: hashedToken,
+    resetPasswordExpire: { $gt: Date.now() },
+  });
+
+  if (!user) {
+    return res.status(400).json({ success: false, error: "Invalid or expired token" });
+  }
+
+  user.password = password; // triggers pre-save hashing
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpire = undefined;
+  await user.save();
+
+  res.status(200).json({ success: true, message: "Password reset successful" });
+});
+
+export const verifyResetToken=catchAsyncErrors(async(req,res,next)=>
+{
+  try {
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(req.params.token)
+      .digest("hex");
+
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpire: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        error: "Token is invalid or expired",
+      });
+    }
+
+    res.status(200).json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+})

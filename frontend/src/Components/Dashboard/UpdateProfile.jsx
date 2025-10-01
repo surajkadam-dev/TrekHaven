@@ -2,8 +2,9 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
+import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+
 import axios from "axios";
 import {
   updateProfile,
@@ -591,6 +592,7 @@ const UpdateProfile = ({ isMobile }) => {
           </div>
         </div>
       </div>
+      <ToastContainer position="top-right" theme="dark" />
     </div>
   );
 };

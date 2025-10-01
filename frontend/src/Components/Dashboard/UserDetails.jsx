@@ -18,6 +18,8 @@ import {
   FiShield,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 // UserHeader Component
 const UserHeader = ({
@@ -922,6 +924,7 @@ const UserDetails = () => {
           loading={loading}
         />
       </div>
+      <ToastContainer position="top-right" theme="dark" />
     </div>
   );
 };

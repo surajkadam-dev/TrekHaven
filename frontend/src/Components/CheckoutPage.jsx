@@ -2,6 +2,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import { motion } from "framer-motion";
 import {
   createBooking,
@@ -1261,6 +1263,7 @@ const CheckoutPage = () => {
           </div>
         </div>
       </div>
+      <ToastContainer position="top-right" theme="dark" />
     </div>
   );
 };

@@ -4,7 +4,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import { getAccommodation } from "../store/slices/adminSlice.js";
 import { clearAllErrors } from "../store/slices/userSlice.js";
-import { toast } from "react-toastify";
 import {
   FaCalendarAlt,
   FaHiking,

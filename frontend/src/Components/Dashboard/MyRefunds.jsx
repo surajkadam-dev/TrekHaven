@@ -7,6 +7,8 @@ import {
 } from "../../store/slices/refundSlice";
 import RefundTimeline from "./RefundTimeline";
 import { toast } from "react-toastify";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import {
   FaTrash,
   FaClock,
@@ -402,6 +404,7 @@ const MyRefunds = () => {
           animation: fadeIn 0.3s ease-out;
         }
       `}</style>
+      <ToastContainer position="top-right" theme="dark" />
     </div>
   );
 };

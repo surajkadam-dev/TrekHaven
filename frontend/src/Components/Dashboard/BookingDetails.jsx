@@ -19,6 +19,8 @@ import {
   FiShield,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const BookingDetails = () => {
   const { id } = useParams();
@@ -457,6 +459,7 @@ const BookingDetails = () => {
           </button>
         </div>
       </div>
+      <ToastContainer position="top-right" theme="dark" />
     </div>
   );
 };

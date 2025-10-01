@@ -406,7 +406,7 @@ export const getBookingsByDate = async (req, res) => {
         error: "No Booked Members",
       });
     }
-
+console.log("Total Booked Members:", totalBooked);
     // Only send success if totalBooked > 0
     res.status(200).json({
       success: true,

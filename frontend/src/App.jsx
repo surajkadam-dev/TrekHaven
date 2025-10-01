@@ -7,13 +7,12 @@ import {
   Route,
   useLocation,
 } from "react-router-dom";
+import { toast } from "react-toastify";
 import Home from "./pages/Home";
 import StaticTrekDetails from "./Components/StaticTrekDetails";
 import BookingPage from "./pages/BookingPage";
 import CheckoutPage from "./Components/CheckoutPage";
 import ScrollToTop from "./Components/ScrollToTop";
-import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import Navbar from "./Components/Navbar";
 import Login from "./Components/Login";
 import Register from "./Components/Register";
@@ -30,6 +29,8 @@ import UserDetails from "./Components/Dashboard/UserDetails";
 import Footer from "./pages/Footer";
 import BookingDetails from "./Components/Dashboard/BookingDetails";
 import UpdateMobile from "./Components/UpdateMobile";
+import ForgotPassword from "./Components/ForgotPassword";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 /**
  * Wrapper so we can use useLocation() (hooks must be inside component)
@@ -40,11 +41,15 @@ const AppRoutes = ({ onMount }) => {
   // hide navbar on dashboard and its subroutes
   const hideNavbar = location.pathname.startsWith("/dashboard");
   const hideFooter = location.pathname.startsWith("/dashboard");
-  const hideContainer = location.pathname.startsWith("/login");
+  const hideContainer =
+    location.pathname === "/" || location.pathname.startsWith("/login");
   useEffect(() => {
     // Call the onMount callback once when component mounts
     onMount && onMount();
   }, [onMount]);
+  useEffect(() => {
+    toast.dismiss(); // removes any lingering toast
+  }, [location]);
 
   return (
     <>
@@ -60,6 +65,8 @@ const AppRoutes = ({ onMount }) => {
         <Route path="/booking" element={<BookingPage />} />
         <Route path="/checkout/:accommodationId" element={<CheckoutPage />} />
         <Route path="/contact-us" element={<ContactUs />} />
+        <Route path="/password-reset" element={<ForgotPassword />} />
+        <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
         <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
         <Route path="/cancellation-refund" element={<CancellationRefund />} />
         <Route path="/shipping-policy" element={<ShippingPolicy />} />
@@ -73,7 +80,7 @@ const AppRoutes = ({ onMount }) => {
         {/* Dashboard route (no navbar) */}
         <Route path="/dashboard" element={<Dashboard />} />
       </Routes>
-      {!hideContainer && <ToastContainer position="top-right" theme="dark" />}
+
       {!hideFooter && <Footer />}
     </>
   );

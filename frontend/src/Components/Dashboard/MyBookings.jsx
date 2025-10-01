@@ -13,6 +13,7 @@ import {
 } from "../../store/slices/bookSlice";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
+import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { FaExclamationTriangle, FaTrash, FaTimes, FaEye } from "react-icons/fa";
 import {
@@ -1684,6 +1685,7 @@ function MyBookings({ isMobile }) {
           </div>
         )}
       </div>
+      <ToastContainer position="top-right" theme="dark" />
     </div>
   );
 }

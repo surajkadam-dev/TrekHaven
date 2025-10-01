@@ -4,6 +4,8 @@ import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 import { auth } from "./firbase/config"; // Fixed typo in "firebase"
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import {
   FaPhone,
   FaCheckCircle,
@@ -530,6 +532,7 @@ const UpdateMobile = ({ onSuccess }) => {
           )}
         </AnimatePresence>
       </motion.div>
+      <ToastContainer position="top-right" theme="dark" />
     </div>
   );
 };

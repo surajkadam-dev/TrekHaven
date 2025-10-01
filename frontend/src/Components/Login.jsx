@@ -17,6 +17,9 @@ import {
 } from "react-icons/fa";
 import { GiTempleGate } from "react-icons/gi";
 import { Loader2 } from "lucide-react";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { toast } from "react-toastify";
 
 // Custom Error Component
 const ErrorDisplay = ({ error, onClose, duration = 5000 }) => {
@@ -121,6 +124,10 @@ export default function Login() {
       }
     };
   }, [error, displayedError, dispatch]);
+  useEffect(() => {
+    dispatch(clearErrors());
+    toast.dismiss(); // removes any lingering toast
+  }, [dispatch, error]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -373,6 +380,7 @@ export default function Login() {
           <div id="googleSignInDiv" className="w-full"></div>
         </div>
       </main>
+      <ToastContainer position="top-right" theme="dark" />
     </div>
   );
 }

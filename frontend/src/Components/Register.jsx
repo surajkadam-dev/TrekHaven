@@ -9,6 +9,8 @@ import {
 import { Loader2 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import {
@@ -32,8 +34,8 @@ import { auth } from "./firbase/config.js";
 // Language content
 const languageContent = {
   en: {
-    title: "Join Maratha Heritage",
-    subtitle: "Connect with the legacy of Chhatrapati Shivaji Maharaj",
+    title: "Karapewadi Homestay",
+    subtitle: " A peaceful retreat in the heart of nature",
     register: "Register",
     trekker: "Trekker",
     admin: "Admin",
@@ -59,15 +61,14 @@ const languageContent = {
     weak: "Weak",
     medium: "Medium",
     strong: "Strong",
-    secureAccess: "Secure Access",
-    heritageTrekking: "Heritage Trekking",
-    exclusiveExperiences: "Exclusive Experiences",
-    quote:
-      '"Connect with the legacy of Chhatrapati Shivaji Maharaj. Become part of Maharashtra\'s glorious history."',
+    secureAccess: "Secure & Private Stay",
+    heritageTrekking: "Fresh Home-Cooked Meals",
+    exclusiveExperiences: "Tranquil Natural Surroundings",
+    quote: '"Experience peace, comfort, and hospitality like home."',
   },
   mr: {
-    title: "मराठा वारसा सामील व्हा",
-    subtitle: "छत्रपती शिवाजी महाराजांच्या वारशाशी कनेक्ट व्हा",
+    title: "करपेवाडी होमस्टे",
+    subtitle: "निसर्गाच्या सानिध्यात एक शांत निवासस्थान",
     register: "नोंदणी करा",
     trekker: "ट्रेकर",
     admin: "प्रशासक",
@@ -93,11 +94,10 @@ const languageContent = {
     weak: "कमकुवत",
     medium: "मध्यम",
     strong: "मजबूत",
-    secureAccess: "सुरक्षित प्रवेश",
-    heritageTrekking: "वारसा ट्रेकिंग",
-    exclusiveExperiences: "अनन्य अनुभव",
-    quote:
-      '"छत्रपती शिवाजी महाराजांच्या वारशाशी कनेक्ट व्हा. महाराष्ट्राच्या गौरवशाली इतिहासाचा भाग बना."',
+    secureAccess: "सुरक्षित आणि खाजगी मुक्काम",
+    heritageTrekking: "घरी शिजवलेले ताजे जेवण",
+    exclusiveExperiences: "शांत नैसर्गिक परिसर",
+    quote: '"अनुभव शांती, आराम, आणि घरासारखी पाहुणचार."',
   },
 };
 
@@ -145,15 +145,17 @@ const Register = () => {
   const [verifying, setVerifying] = useState(false);
   const [mobileVerified, setMobileVerified] = useState(false);
   const [sendingOtp, setSendingOtp] = useState(false);
+  const [sendEmailOtp, setSendEmailOtp] = useState(false);
   const [showRecaptcha, setShowRecaptcha] = useState(false);
   const [recaptchaVerified, setRecaptchaVerified] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [canResend, setCanResend] = useState(false);
   const [recaptchaLoading, setRecaptchaLoading] = useState(false);
   const [checkingMobile, setCheckingMobile] = useState(false);
-  const [language, setLanguage] = useState("mr");
+  const [language, setLanguage] = useState("en");
   const [emailVerifying, setEmailVerifying] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
+  const [recaptchaInitialized, setRecaptchaInitialized] = useState(false);
 
   const recaptchaVerifierRef = useRef(null);
   const recaptchaWidgetIdRef = useRef(null);
@@ -190,9 +192,10 @@ const Register = () => {
 
   // Initialize reCAPTCHA when needed
   useEffect(() => {
-    if (auth && showRecaptcha) {
+    if (auth && showRecaptcha && !recaptchaInitialized) {
       try {
         setRecaptchaLoading(true);
+
         // Clear any existing reCAPTCHA
         if (recaptchaWidgetIdRef.current) {
           window.grecaptcha.reset(recaptchaWidgetIdRef.current);
@@ -217,24 +220,27 @@ const Register = () => {
         recaptchaVerifierRef.current.render().then((widgetId) => {
           recaptchaWidgetIdRef.current = widgetId;
           setRecaptchaLoading(false);
+          setRecaptchaInitialized(true);
         });
       } catch (error) {
         console.error("Error initializing reCAPTCHA:", error);
         toast.error("reCAPTCHA लोड करताना त्रुटी");
+        setRecaptchaLoading(false);
       }
     }
-  }, [showRecaptcha]);
+  }, [showRecaptcha, recaptchaInitialized]);
 
-  // Clean up reCAPTCHA when not needed
+  // Clean up reCAPTCHA when mobile is verified
   useEffect(() => {
-    if (mobileVerified) {
+    if (mobileVerified && recaptchaInitialized) {
       if (recaptchaVerifierRef.current) {
         recaptchaVerifierRef.current.clear();
         recaptchaWidgetIdRef.current = null;
+        setRecaptchaInitialized(false);
         setShowRecaptcha(false);
       }
     }
-  }, [mobileVerified]);
+  }, [mobileVerified, recaptchaInitialized]);
 
   const initRecaptcha = async () => {
     if (!/^[0-9]{10}$/.test(form.mobile)) {
@@ -295,6 +301,10 @@ const Register = () => {
       setCountdown(30);
       setCanResend(false);
       setRecaptchaVerified(false);
+
+      // Hide the reCAPTCHA container but keep reCAPTCHA initialized
+      setShowRecaptcha(false);
+
       toast.success(
         language === "en" ? "OTP sent successfully" : "OTP पाठवला आहे"
       );
@@ -317,12 +327,13 @@ const Register = () => {
   };
 
   const resendOtp = async () => {
-    // Reset reCAPTCHA for resend
+    // Reset and show reCAPTCHA for resend
     if (recaptchaWidgetIdRef.current) {
       window.grecaptcha.reset(recaptchaWidgetIdRef.current);
     }
     setRecaptchaVerified(false);
     setShowRecaptcha(true);
+    setOtpSent(false);
   };
 
   const verifyOtp = async () => {
@@ -352,6 +363,7 @@ const Register = () => {
 
       setMobileVerified(true);
       setOtpSent(false);
+      setOtp("");
       toast.success(
         language === "en"
           ? "Mobile number verified successfully"
@@ -379,6 +391,7 @@ const Register = () => {
           );
           setOtpSent(false);
           confirmationResultRef.current = null;
+          setShowRecaptcha(true);
           break;
         default:
           toast.error(
@@ -400,6 +413,7 @@ const Register = () => {
       setOtpSent(false);
       setShowRecaptcha(false);
       setRecaptchaVerified(false);
+      setRecaptchaInitialized(false);
       setCountdown(0);
       setCanResend(false);
       confirmationResultRef.current = null;
@@ -545,6 +559,10 @@ const Register = () => {
       if (loading) {
         dispatch(resetLoading());
       }
+      // Clean up reCAPTCHA on component unmount
+      if (recaptchaVerifierRef.current) {
+        recaptchaVerifierRef.current.clear();
+      }
     };
   }, []);
 
@@ -572,7 +590,7 @@ const Register = () => {
       console.log(data);
       if (data.success) {
         toast.success("OTP sent to your email");
-        setOtpSent(true);
+        setSendEmailOtp(true);
       } else {
         toast.error(data.message || "Failed to send OTP");
       }
@@ -603,7 +621,7 @@ const Register = () => {
       if (data.success) {
         toast.success("Email verified successfully");
         setEmailVerified(true);
-        setOtpSent(false);
+        setSendEmailOtp(false);
       } else {
         toast.error(data.message || "Invalid OTP");
       }
@@ -640,33 +658,29 @@ const Register = () => {
             {/* Branding */}
             <div className="text-center">
               <FaHome className="text-6xl mx-auto mb-4" />
-              <h1 className="text-4xl font-bold mb-2">Karpewadi Homestay</h1>
-              <p className="text-green-100">
-                A peaceful retreat in the heart of nature
-              </p>
+              <h1 className="text-4xl font-bold mb-2">{lang.title}</h1>
+              <p className="text-green-100">{lang.subtitle}</p>
             </div>
 
             {/* Key Features */}
             <div className="space-y-4">
               <div className="flex items-center space-x-3">
                 <FaShieldAlt className="text-green-300" />
-                <span>Secure & Private Stay</span>
+                <span>{lang.secureAccess}</span>
               </div>
               <div className="flex items-center space-x-3">
                 <GiMeal className="text-green-300" />
-                <span>Fresh Home-Cooked Meals</span>
+                <span>{lang.heritageTrekking}</span>
               </div>
               <div className="flex items-center space-x-3">
                 <FaTree className="text-green-300" />
-                <span>Tranquil Natural Surroundings</span>
+                <span>{lang.exclusiveExperiences}</span>
               </div>
             </div>
 
             {/* Quote / Message */}
             <div className="bg-green-900/50 p-6 rounded-lg">
-              <p className="text-green-100 italic">
-                "Experience peace, comfort, and hospitality like home."
-              </p>
+              <p className="text-green-100 italic">{lang.quote}</p>
             </div>
           </div>
         </div>
@@ -844,7 +858,7 @@ const Register = () => {
                     )}
                 </div>
 
-                {/* reCAPTCHA container */}
+                {/* reCAPTCHA container - Only show when needed */}
                 {showRecaptcha && !mobileVerified && (
                   <div className="mt-3 md:mt-4">
                     {recaptchaLoading ? (
@@ -1001,7 +1015,7 @@ const Register = () => {
                 </div>
 
                 {/* OTP Input (only shows after OTP sent and not yet verified) */}
-                {otpSent && !emailVerified && (
+                {sendEmailOtp && !emailVerified && (
                   <div className="flex gap-2 mt-3">
                     <input
                       type="text"
@@ -1187,6 +1201,7 @@ const Register = () => {
           </div>
         </div>
       </div>
+      <ToastContainer position="top-right" theme="dark" />
     </div>
   );
 };

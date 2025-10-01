@@ -10,6 +10,8 @@ import UpdateMobile from "../Components/UpdateMobile";
 
 import { FaArrowRight } from "react-icons/fa";
 import { toast } from "react-toastify";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const contentData = {
   en: {
@@ -528,6 +530,7 @@ const BookingPage = () => {
           </aside>
         </div>
       </main>
+      <ToastContainer position="top-right" theme="dark" />
     </div>
   );
 };
