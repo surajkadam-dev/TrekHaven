@@ -42,6 +42,8 @@ export const createBookingOrder = async (req, res, next) => {
       email,
       phone
     } = req.body;
+
+    console.log(req.body);
   
 
     // Validation
@@ -72,6 +74,7 @@ if(date.toDateString()=== new Date().toDateString() && now.getHours() >= cutoffT
     error:"Same-day booking closed after 5 PM."
   })
 }
+    
     // Calculate expected amount
     const mealRate = mealType === "nonveg" ? accommodation.nonVegRate : accommodation.vegRate;
     const mealAmount = needStay ? mealRate * stayNight * size : mealRate * size;
