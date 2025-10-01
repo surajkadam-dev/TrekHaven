@@ -224,13 +224,7 @@ if(user)
     })
   }
 }
-  if(user.provider!== "google")
-  {
-     return res.status(400).json({
-      success:false,
-      error:"You are register in manualy please login with email and paasword "
-    })
-  }
+
 
     if (user) {
       // Existing Google user → login
