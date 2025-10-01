@@ -165,7 +165,12 @@ export const login = catchAsyncErrors(async (req, res, next) => {
 
   // Check role
  
-
+  if(user.role !== role) {
+    return res.status(401).json({
+      success: false,
+      error: "Invalid email or password or role"
+    });
+  }
 
   // Admin check
   if (role === "admin" && !user.isAdmin) {
