@@ -168,20 +168,14 @@ export const login = catchAsyncErrors(async (req, res, next) => {
 
   // Check role
  
-<<<<<<< HEAD
-=======
 
->>>>>>> 48ebd05 (Email Notification Update)
   if(user.role !== role) {
     return res.status(401).json({
       success: false,
       error: "Invalid email or password or role"
     });
   }
-<<<<<<< HEAD
 
-=======
->>>>>>> 48ebd05 (Email Notification Update)
   // Admin check
   if (role === "admin" && !user.isAdmin) {
     return next(new ErrorHandler("Unauthorized access. You are not an admin.", 403));
@@ -234,11 +228,7 @@ if(user)
     })
   }
 }
-<<<<<<< HEAD
 
-=======
- 
->>>>>>> 48ebd05 (Email Notification Update)
 
     if (user) {
       // Existing Google user → login
