@@ -12,6 +12,7 @@ import { sendEmail } from '../utils/emailService.js';
 import { saveTempBooking,getTempBooking,deleteTempBooking} from '../utils/tempBookings.js';
 import {getBookedSeatsForDate} from "../helper/capacity.js";
 import {autoCompleteBookings} from "../services/bookingService.js"
+import { isSameDayBookingClosed } from '../helper/sameDayBookingClose.js';
 
 import { v4 as uuidv4 } from 'uuid';
 
@@ -42,8 +43,6 @@ export const createBookingOrder = async (req, res, next) => {
       email,
       phone
     } = req.body;
-
-    console.log(req.body);
   
 
     // Validation
@@ -65,16 +64,12 @@ export const createBookingOrder = async (req, res, next) => {
     if (isNaN(date.getTime())) {
       return res.json({ success: false, error: "Invalid stay date" });
     }
-const now = new Date();
-const cutoffTime=17;
-if(date.toDateString()=== new Date().toDateString() && now.getHours() >= cutoffTime)
-{
-  return res.json({
-    success:false,
-    error:"Same-day booking closed after 5 PM."
-  })
-}
-    
+    if (isSameDayBookingClosed(stayDate, 17)) {
+      return res.json({
+        success: false,
+        error: "Same-day booking closed after 5 PM."
+      });
+    }
     // Calculate expected amount
     const mealRate = mealType === "nonveg" ? accommodation.nonVegRate : accommodation.vegRate;
     const mealAmount = needStay ? mealRate * stayNight * size : mealRate * size;
