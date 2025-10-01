@@ -446,7 +446,7 @@ export const handleContactFormSubmit = async (req,res) => {
 
   try {
     await sendEmail({
-      to: process.env.SMTP_MAIL, // This will send the email to your business inbox
+      to: process.env.SENDER_EMAIL, // This will send the email to your business inbox
       subject: `New Contact Form Submission from ${name}`,
       text: `
 You have received a new inquiry from your Contact Us page.
