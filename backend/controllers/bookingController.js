@@ -27,6 +27,7 @@ const razorpay = new Razorpay({
 export const createBookingOrder = async (req, res, next) => {
   try {
     const { accommodationId } = req.params;
+    console.log("api hit")
  
     const {
       stayDate,
