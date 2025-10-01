@@ -214,13 +214,16 @@ export const googleAuth = catchAsyncErrors(async (req, res, next) => {
 
     // Check if user exists by googleId ONLY
     let user = await User.findOne({ googleId});
-    if(user.isBlocked)
+if(user)
+{
+      if(user.isBlocked)
   {
     return res.status(400).json({
       success:false,
       error:"You are blocked please contact to admin"
     })
   }
+}
   if(user.provider!== "google")
   {
      return res.status(400).json({
