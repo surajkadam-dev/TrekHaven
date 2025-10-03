@@ -64,7 +64,6 @@ export const createBookingOrder = async (req, res, next) => {
     if (isNaN(date.getTime())) {
       return res.json({ success: false, error: "Invalid stay date" });
     }
-<<<<<<< HEAD
 const now = new Date();
 const cutoffTime=17;
 if(date.toDateString()=== new Date().toDateString() && now.getHours() >= cutoffTime)
