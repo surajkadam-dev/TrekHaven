@@ -53,490 +53,97 @@ export const createEmergencyUpdateRequest = async (req, res) => {
       reason,
     });
 
-//     await sendEmail({
-//   to:process.env.SENDER_EMAIL,
-//   subject: "🚨 New Emergency Update Request - Action Required",
-//   html: `
-//  <!DOCTYPE html>
-// <html lang="en">
-// <head>
-//     <meta charset="UTF-8">
-//     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-//     <title>Emergency Update Request</title>
-//     <style>
-//         /* Reset Styles */
-//         * {
-//             margin: 0;
-//             padding: 0;
-//             box-sizing: border-box;
-//         }
-        
-//         body {
-//             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-//             background-color: #f5f7fa;
-//             padding: 0;
-//             margin: 0;
-//             line-height: 1.5;
-//             color: #333;
-//             -webkit-text-size-adjust: 100%;
-//         }
-        
-//         /* Main Container */
-//         .email-wrapper {
-//             max-width: 100%;
-//             width: 100%;
-//             margin: 0 auto;
-//             background-color: #f5f7fa;
-//             padding: 10px;
-//         }
-        
-//         .email-container {
-//             max-width: 600px;
-//             margin: 0 auto;
-//             background: #ffffff;
-//             border-radius: 10px;
-//             overflow: hidden;
-//             box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
-//         }
-        
-//         /* Header */
-//         .header {
-//             background: linear-gradient(135deg, #2d6a4f 0%, #40916c 100%);
-//             padding: 25px 20px;
-//             text-align: center;
-//         }
-        
-//         .header h1 {
-//             color: #ffffff;
-//             margin: 0;
-//             font-size: 22px;
-//             font-weight: 600;
-//             line-height: 1.3;
-//         }
-        
-//         .header p {
-//             color: #d8f3dc;
-//             margin: 8px 0 0 0;
-//             font-size: 14px;
-//         }
-        
-//         /* Content */
-//         .content {
-//             padding: 25px 20px;
-//         }
-        
-//         /* Alert Banner */
-//         .alert-banner {
-//             background: #fff3cd;
-//             border: 1px solid #ffeaa7;
-//             border-radius: 8px;
-//             padding: 15px;
-//             margin-bottom: 20px;
-//         }
-        
-//         .alert-content {
-//             display: flex;
-//             align-items: flex-start;
-//         }
-        
-//         .alert-icon {
-//             background: #fdcb6e;
-//             border-radius: 50%;
-//             width: 24px;
-//             height: 24px;
-//             display: flex;
-//             align-items: center;
-//             justify-content: center;
-//             flex-shrink: 0;
-//             margin-right: 12px;
-//         }
-        
-//         .alert-icon span {
-//             color: #ffffff;
-//             font-size: 14px;
-//             font-weight: bold;
-//         }
-        
-//         .alert-text {
-//             margin: 0;
-//             color: #856404;
-//             font-weight: 500;
-//             font-size: 15px;
-//         }
-        
-//         /* User Information */
-//         .user-info {
-//             background: #f8f9fa;
-//             border-radius: 8px;
-//             padding: 18px;
-//             margin-bottom: 20px;
-//         }
-        
-//         .user-info h3 {
-//             color: #2d6a4f;
-//             margin: 0 0 15px 0;
-//             font-size: 18px;
-//             font-weight: 600;
-//         }
-        
-//         .user-details {
-//             display: flex;
-//             align-items: center;
-//         }
-        
-//         .user-avatar {
-//             background: #2d6a4f;
-//             color: #ffffff;
-//             border-radius: 50%;
-//             width: 45px;
-//             height: 45px;
-//             display: flex;
-//             align-items: center;
-//             justify-content: center;
-//             font-weight: 600;
-//             flex-shrink: 0;
-//             margin-right: 15px;
-//             font-size: 18px;
-//         }
-        
-//         .user-text p {
-//             margin: 0;
-//         }
-        
-//         .user-name {
-//             color: #212529;
-//             font-weight: 600;
-//             font-size: 16px;
-//         }
-        
-//         .user-email {
-//             color: #6c757d;
-//             font-size: 14px;
-//             margin-top: 4px;
-//         }
-        
-//         /* Requested Changes */
-//         .changes-section {
-//             margin-bottom: 20px;
-//         }
-        
-//         .changes-section h3 {
-//             color: #2d6a4f;
-//             margin: 0 0 15px 0;
-//             font-size: 18px;
-//             font-weight: 600;
-//         }
-        
-//         .change-item {
-//             background: #e8f5e8;
-//             border: 1px solid #b7efb7;
-//             border-radius: 8px;
-//             padding: 15px;
-//             margin-bottom: 12px;
-//         }
-        
-//         .change-header {
-//             display: flex;
-//             align-items: center;
-//             margin-bottom: 12px;
-//         }
-        
-//         .change-icon {
-//             color: #2d6a4f;
-//             font-size: 18px;
-//             margin-right: 8px;
-//         }
-        
-//         .change-title {
-//             color: #2d6a4f;
-//             font-weight: 600;
-//             font-size: 16px;
-//         }
-        
-//         .change-comparison {
-//             display: flex;
-//             flex-direction: column;
-//             gap: 8px;
-//         }
-        
-//         .change-row {
-//             display: flex;
-//             justify-content: space-between;
-//         }
-        
-//         .change-label {
-//             color: #6c757d;
-//             font-size: 13px;
-//         }
-        
-//         .change-value {
-//             color: #495057;
-//             font-weight: 500;
-//         }
-        
-//         .change-new-value {
-//             color: #2d6a4f;
-//             font-weight: 600;
-//         }
-        
-//         .no-changes {
-//             background: #fff3cd;
-//             border: 1px solid #ffeaa7;
-//             border-radius: 8px;
-//             padding: 15px;
-//             text-align: center;
-//         }
-        
-//         .no-changes p {
-//             margin: 0;
-//             color: #856404;
-//             font-size: 15px;
-//         }
-        
-//         /* Reason */
-//         .reason-section {
-//             background: #fff3cd;
-//             border: 1px solid #ffeaa7;
-//             border-radius: 8px;
-//             padding: 18px;
-//             margin-bottom: 20px;
-//         }
-        
-//         .reason-section h3 {
-//             color: #856404;
-//             margin: 0 0 12px 0;
-//             font-size: 16px;
-//             font-weight: 600;
-//             display: flex;
-//             align-items: center;
-//         }
-        
-//         .reason-section h3:before {
-//             content: "📝";
-//             margin-right: 8px;
-//         }
-        
-//         .reason-text {
-//             margin: 0;
-//             color: #856404;
-//             font-size: 14px;
-//             line-height: 1.5;
-//         }
-        
-//         /* Footer */
-//         .footer {
-//             border-top: 1px solid #e9ecef;
-//             padding-top: 20px;
-//             text-align: center;
-//         }
-        
-//         .footer p {
-//             margin: 0 0 8px 0;
-//             color: #6c757d;
-//             font-size: 14px;
-//         }
-        
-//         .system-name {
-//             color: #2d6a4f;
-//             font-size: 14px;
-//             font-weight: 600;
-//         }
-        
-//         .date {
-//             color: #6c757d;
-//             font-size: 12px;
-//             margin-top: 4px;
-//         }
-        
-//         /* Security Notice */
-//         .security-notice {
-//             max-width: 600px;
-//             margin: 15px auto;
-//             text-align: center;
-//             padding: 0 10px;
-//         }
-        
-//         .security-notice p {
-//             margin: 0;
-//             color: #6c757d;
-//             font-size: 12px;
-//         }
-        
-//         /* Desktop Styles */
-//         @media only screen and (min-width: 600px) {
-//             .email-wrapper {
-//                 padding: 20px 10px;
-//             }
-            
-//             .content {
-//                 padding: 30px;
-//             }
-            
-//             .header {
-//                 padding: 30px;
-//             }
-            
-//             .header h1 {
-//                 font-size: 24px;
-//             }
-            
-//             .change-comparison {
-//                 flex-direction: row;
-//                 align-items: center;
-//                 justify-content: space-between;
-//             }
-            
-//             .change-row {
-//                 flex: 1;
-//                 flex-direction: column;
-//             }
-            
-//             .change-arrow {
-//                 color: #6c757d;
-//                 font-size: 18px;
-//                 padding: 0 15px;
-//             }
-            
-//             .change-comparison.desktop-layout {
-//                 flex-direction: row;
-//             }
-//         }
-//     </style>
-// </head>
-// <body>
-//     <div class="email-wrapper">
-//         <div class="email-container">
-//             <!-- Header -->
-//             <div class="header">
-//                 <h1>⚠️ Emergency Update Request</h1>
-//                 <p>Immediate Admin Action Required</p>
-//             </div>
+await sendEmail({
+  to: process.env.SENDER_EMAIL,
+  subject: "🚨 New Emergency Update Request - Action Required",
+  html: `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergency Update Request</title>
+</head>
+<body>
+    <div>
+        <div>
+            <!-- Header -->
+            <div style="background: #2d6a4f; padding: 25px 20px; text-align: center;">
+                <h1 style="color: white; margin: 0;">⚠️ Emergency Update Request</h1>
+                <p style="color: #d8f3dc; margin: 8px 0 0 0;">Immediate Admin Action Required</p>
+            </div>
 
-//             <!-- Content -->
-//             <div class="content">
-//                 <!-- Alert Banner -->
-//                 <div class="alert-banner">
-//                     <div class="alert-content">
-//                         <div class="alert-icon">
-//                             <span>!</span>
-//                         </div>
-//                         <p class="alert-text">New emergency update request requires your review</p>
-//                     </div>
-//                 </div>
+            <!-- Content -->
+            <div style="padding: 25px 20px;">
+                <!-- Alert Banner -->
+                <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; margin-bottom: 20px;">
+                    <p style="color: #856404; margin: 0;">New emergency update request requires your review</p>
+                </div>
 
-//                 <!-- User Information -->
-//                 <div class="user-info">
-//                     <h3>User Details</h3>
-//                     <div class="user-details">
-//                         <div class="user-avatar">
-//                             ${user.name ? user.name.charAt(0).toUpperCase() : 'U'}
-//                         </div>
-//                         <div class="user-text">
-//                             <p class="user-name">${user.name || 'User'}</p>
-//                             <p class="user-email">${user.email}</p>
-//                         </div>
-//                     </div>
-//                 </div>
+                <!-- User Information -->
+                <div style="background: #f8f9fa; padding: 18px; margin-bottom: 20px;">
+                    <h3 style="color: #2d6a4f; margin: 0 0 15px 0;">User Details</h3>
+                    <div>
+                        <p style="margin: 0; font-weight: bold;">${user.name || 'User'}</p>
+                        <p style="margin: 4px 0 0 0; color: #6c757d;">${user.email}</p>
+                    </div>
+                </div>
 
-//                 <!-- Requested Changes -->
-//                 <div class="changes-section">
-//                     <h3>Requested Changes</h3>
+                <!-- Requested Changes -->
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: #2d6a4f; margin: 0 0 15px 0;">Requested Changes</h3>
                     
-//                     ${request.newEmail ? `
-//                     <div class="change-item">
-//                         <div class="change-header">
-//                             <span class="change-icon">📧</span>
-//                             <span class="change-title">Email Update</span>
-//                         </div>
-//                         <div class="change-comparison mobile-layout">
-//                             <div class="change-row">
-//                                 <div class="change-label">Current</div>
-//                                 <div class="change-value">${user.email}</div>
-//                             </div>
-//                             <div class="change-row">
-//                                 <div class="change-label">Requested</div>
-//                                 <div class="change-new-value">${request.newEmail}</div>
-//                             </div>
-//                         </div>
-//                     </div>
-//                     ` : ''}
+                    ${request.newEmail ? `
+                    <div style="background: #e8f5e8; border: 1px solid #b7efb7; padding: 15px; margin-bottom: 12px;">
+                        <h4 style="color: #2d6a4f; margin: 0 0 10px 0;">📧 Email Update</h4>
+                        <div>
+                            <p style="margin: 5px 0;"><strong>Current:</strong> ${user.email}</p>
+                            <p style="margin: 5px 0;"><strong>Requested:</strong> ${request.newEmail}</p>
+                        </div>
+                    </div>
+                    ` : ''}
 
-//                     ${request.newMobile ? `
-//                     <div class="change-item">
-//                         <div class="change-header">
-//                             <span class="change-icon">📱</span>
-//                             <span class="change-title">Mobile Update</span>
-//                         </div>
-//                         <div class="change-comparison mobile-layout">
-//                             <div class="change-row">
-//                                 <div class="change-label">Current</div>
-//                                 <div class="change-value">${user.mobile || 'Not set'}</div>
-//                             </div>
-//                             <div class="change-row">
-//                                 <div class="change-label">Requested</div>
-//                                 <div class="change-new-value">${request.newMobile}</div>
-//                             </div>
-//                         </div>
-//                     </div>
-//                     ` : ''}
+                    ${request.newMobile ? `
+                    <div style="background: #e8f5e8; border: 1px solid #b7efb7; padding: 15px; margin-bottom: 12px;">
+                        <h4 style="color: #2d6a4f; margin: 0 0 10px 0;">📱 Mobile Update</h4>
+                        <div>
+                            <p style="margin: 5px 0;"><strong>Current:</strong> ${user.mobile || 'Not set'}</p>
+                            <p style="margin: 5px 0;"><strong>Requested:</strong> ${request.newMobile}</p>
+                        </div>
+                    </div>
+                    ` : ''}
 
-//                     ${!request.newEmail && !request.newMobile ? `
-//                     <div class="no-changes">
-//                         <p>No specific changes requested - review required for reason provided.</p>
-//                     </div>
-//                     ` : ''}
-//                 </div>
+                    ${!request.newEmail && !request.newMobile ? `
+                    <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; text-align: center;">
+                        <p style="color: #856404; margin: 0;">No specific changes requested - review required for reason provided.</p>
+                    </div>
+                    ` : ''}
+                </div>
 
-//                 <!-- Reason -->
-//                 <div class="reason-section">
-//                     <h3>Reason for Update</h3>
-//                     <p class="reason-text">${request.reason}</p>
-//                 </div>
+                <!-- Reason -->
+                <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 18px; margin-bottom: 20px;">
+                    <h3 style="color: #856404; margin: 0 0 12px 0;">📝 Reason for Update</h3>
+                    <p style="color: #856404; margin: 0;">${request.reason}</p>
+                </div>
 
-//                 <!-- Footer -->
-//                 <div class="footer">
-//                     <p>This is an automated notification. Please do not reply to this email.</p>
-//                     <p class="system-name">Karpewadi Homestay Management System</p>
-//                     <p class="date">${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-//                 </div>
-//             </div>
-//         </div>
+                <!-- Footer -->
+                <div style="border-top: 1px solid #e9ecef; padding-top: 20px; text-align: center;">
+                    <p style="margin: 0 0 8px 0; color: #6c757d;">This is an automated notification. Please do not reply to this email.</p>
+                    <p style="margin: 0 0 8px 0; color: #2d6a4f; font-weight: bold;">Karpewadi Homestay Management System</p>
+                    <p style="margin: 0; color: #6c757d; font-size: 12px;">${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                </div>
+            </div>
+        </div>
 
-//         <!-- Security Notice -->
-//         <div class="security-notice">
-//             <p>🔒 This email contains sensitive information. Please handle with care and ensure proper authorization for any actions taken.</p>
-//         </div>
-//     </div>
-
-//     <script>
-//         // This script enhances the layout for desktop view
-//         document.addEventListener('DOMContentLoaded', function() {
-//             if (window.innerWidth > 600) {
-//                 // Convert mobile layout to desktop layout for change items
-//                 const changeItems = document.querySelectorAll('.change-item');
-//                 changeItems.forEach(item => {
-//                     const comparison = item.querySelector('.change-comparison');
-//                     if (comparison) {
-//                         comparison.classList.remove('mobile-layout');
-//                         comparison.classList.add('desktop-layout');
-                        
-//                         const rows = comparison.querySelectorAll('.change-row');
-//                         if (rows.length === 2) {
-//                             const arrow = document.createElement('div');
-//                             arrow.className = 'change-arrow';
-//                             arrow.innerHTML = '→';
-                            
-//                             comparison.insertBefore(arrow, rows[1]);
-//                         }
-//                     }
-//                 });
-//             }
-//         });
-//     </script>
-// </body>
-// </html>
-//   `
-// });
+        <!-- Security Notice -->
+        <div style="text-align: center; margin-top: 15px;">
+            <p style="color: #6c757d; font-size: 12px; margin: 0;">🔒 This email contains sensitive information. Please handle with care.</p>
+        </div>
+    </div>
+</body>
+</html>
+  `
+});
 
     res.status(201).json({
       message: "Emergency update request submitted successfully",

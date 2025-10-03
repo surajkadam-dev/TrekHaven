@@ -175,6 +175,10 @@ export const login = catchAsyncErrors(async (req, res, next) => {
       error: "Invalid email or password or role"
     });
   }
+<<<<<<< HEAD
+=======
+
+>>>>>>> f88c6a70b0d4726b99cbc688858e54267648d00e
   // Admin check
   if (role === "admin" && !user.isAdmin) {
     return next(new ErrorHandler("Unauthorized access. You are not an admin.", 403));
@@ -227,7 +231,11 @@ if(user)
     })
   }
 }
+<<<<<<< HEAD
  
+=======
+
+>>>>>>> f88c6a70b0d4726b99cbc688858e54267648d00e
 
     if (user) {
       // Existing Google user → login
