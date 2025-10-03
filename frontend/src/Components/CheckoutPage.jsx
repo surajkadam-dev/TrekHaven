@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { motion } from "framer-motion";
+const BackendURL = "http://localhost:8000";
 import {
   createBooking,
   resetSlice,
@@ -274,7 +275,7 @@ const CheckoutPage = () => {
 
       try {
         const response = await axios.get(
-          `https://trekrest.onrender.com/api/v1/booking/check-confirmation/${orderId}`,
+          `${BackendURL}/api/v1/booking/check-confirmation/${orderId}`,
           { withCredentials: true }
         );
 
@@ -358,7 +359,7 @@ const CheckoutPage = () => {
             setWaitingForWebhook(true);
 
             const verifyRes = await axios.post(
-              `https://trekrest.onrender.com/api/v1/booking/${accommodationId}/verify-payment`,
+              `${BackendURL}/api/v1/booking/${accommodationId}/verify-payment`,
               {
                 razorpay_payment_id: paymentResponse.razorpay_payment_id,
                 razorpay_order_id: paymentResponse.razorpay_order_id,

@@ -43,7 +43,7 @@ export const createBookingOrder = async (req, res, next) => {
     } = req.body;
   
 
-    // Validation
+    
     if (!stayDate || !groupSize || !mealType || !amount || !paymentMode || !name || !email || !phone) {
       return res.json({ success: false, error: "Missing required fields" });
     }
@@ -71,14 +71,14 @@ if(date.toDateString()=== new Date().toDateString() && now.getHours() >= cutoffT
     error:"Same-day booking closed after 5 PM."
   })
 }
-    // Calculate expected amount
+    
     const mealRate = mealType === "nonveg" ? accommodation.nonVegRate : accommodation.vegRate;
     const mealAmount = needStay ? mealRate * stayNight * size : mealRate * size;
     const stayAmount = needStay ? accommodation.pricePerNight * stayNight * size : 0;
     const expectedAmount = mealAmount + stayAmount;
 
-    // Deposit logic
-const depositAmount = paymentMode === 'cash' ? expectedAmount / 2 : expectedAmount; // The amount should match what we expect to charge now
+    
+const depositAmount = paymentMode === 'cash' ? expectedAmount / 2 : expectedAmount; 
 const expectedChargeAmount = paymentMode === 'online' ? depositAmount : expectedAmount;
 
 if (amount !== expectedChargeAmount) {
@@ -116,7 +116,7 @@ end.setUTCDate(end.getUTCDate() + 1);
       });
     }
 
-    // Create Razorpay Order (with booking data in notes)
+    
 
     const bookingToken = uuidv4();
     await saveTempBooking(bookingToken, {
@@ -161,12 +161,12 @@ const options = {
   }
 };
 
-// Verify Payment Controller
+
 export const verifyPayment = async (req, res) => {
   try {
     const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = req.body;
 
-    // Verify signature
+    
     const expectedSignature = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
@@ -176,7 +176,7 @@ export const verifyPayment = async (req, res) => {
       return res.status(400).json({ success: false, error: "Invalid payment signature" });
     }
 
-    // ✅ Signature valid → tell frontend to wait for webhook confirmation
+    
     res.json({
       success: true,
       message: "Payment verified. Booking will be confirmed shortly once Razorpay notifies us."
@@ -194,11 +194,11 @@ export const razorpayWebhook = async (req, res) => {
     const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
     const signature = req.headers["x-razorpay-signature"];
 
-    // req.body is Buffer because express.raw({type: "application/json"})
+    
     const bodyBuffer = req.body;
     const bodyString = bodyBuffer.toString("utf8");
 
-    // Verify signature
+    
     const expectedSignature = crypto
       .createHmac("sha256", webhookSecret)
       .update(bodyString)
@@ -212,12 +212,12 @@ export const razorpayWebhook = async (req, res) => {
     const payload = JSON.parse(bodyString);
     const event = payload.event;
 
-    // --------------------- PAYMENT EVENTS ---------------------
+    
     if (event === "payment.captured" || event === "payment.failed") {
       const paymentEntity = payload.payload.payment.entity;
       const notes = paymentEntity.notes;
 
-      // Prevent duplicate payment logs
+      
       let paymentDoc = await Payment.findOne({ razorpayPaymentId: paymentEntity.id });
       if (!paymentDoc) {
         await Payment.create({
@@ -226,18 +226,27 @@ export const razorpayWebhook = async (req, res) => {
           razorpayPaymentId: paymentEntity.id,
           amount: paymentEntity.amount / 100,
           status: event === "payment.captured" ? "paid" : "failed",
+          bookingCreated:false,
+          refundStatus: "none",
         });
       }
 
-      // Create booking only if payment success
+      
 if (event === "payment.captured") {
   const paymentEntity = payload.payload.payment.entity;
   const bookingToken = paymentEntity.notes.bookingToken;
 
-  const bookingData = await getTempBooking(bookingToken);
+ try {
+   const bookingData = await getTempBooking(bookingToken);
   if (!bookingData) {
     console.warn("Booking token not found:", bookingToken);
-    return res.status(400).send("Invalid booking token");
+        await razorpay.refunds.create({
+        payment_id: paymentEntity.id,
+        amount: paymentEntity.amount, 
+        speed: "optimum",
+        notes: { reason: "Booking token missing" }
+      });
+       return res.status(400).send("Refund initiated due to invalid booking token");
   }
 
   const booking = await Booking.create({
@@ -265,7 +274,15 @@ if (event === "payment.captured") {
 
 
   
-
+await Payment.findOneAndUpdate(
+  { razorpayPaymentId: paymentEntity.id },
+  {
+    booking: booking._id,
+    bookingCreated: true,
+    refundStatus: "none",
+    status: "paid"
+  }
+);
   await deleteTempBooking(bookingToken);
   await sendEmail({
   to: booking.email,
@@ -348,13 +365,67 @@ if (event === "payment.captured") {
   </html>
   `
 });
+  
+ } catch (error) {
+   console.error("Booking creation failed after payment:", error);
+     try {
+      await razorpay.refunds.create({
+        payment_id: paymentEntity.id,
+        amount: paymentEntity.amount,
+        speed: "optimum",
+        notes: { reason: "Booking creation failed" }
+      });
+      await Payment.findOneAndUpdate(
+  { razorpayPaymentId: paymentEntity.id },
+  {
+    bookingCreated: false,
+    refundStatus: "initiated",
+    status: "refunded"
+  }
+);
+
+
+    await sendEmail({
+  to: paymentEntity.email || bookingData?.email,
+  subject: "Booking Failed – Refund Initiated ❌",
+  html: `
+  <html>
+    <body style="font-family:Arial, sans-serif; background:#f4f6f8; padding:20px;">
+      <table style="max-width:600px; margin:auto; background:#fff; padding:20px; border-radius:8px;">
+        <tr>
+          <td>
+            <h2 style="color:#d32f2f;">Booking Failed ❌</h2>
+            <p>Hi <strong>${bookingData?.name || "Guest"}</strong>,</p>
+            <p>We’re sorry! Your booking could not be completed.  
+            Don’t worry – your payment of <strong>₹${paymentEntity.amount / 100}</strong>  
+            has been refunded back to your account.</p>
+            <p>It may take <strong>3–4 business working days</strong> to reflect in your bank.</p>
+            <p>We sincerely apologize for the inconvenience 🙏.  
+            Please try booking again or contact our support if you face issues.</p>
+            <p style="margin-top:20px;font-size:14px;color:#555;">
+              Regards,<br/>Team Karpewadi Homestay
+            </p>
+          </td>
+        </tr>
+      </table>
+    </body>
+  </html>
+  `
+});
+
+    } catch (refundErr) {
+      console.error("Refund initiation failed:", refundErr);
+    }
+  
+ }
+
 
 } else {
         console.log("❌ Payment failed, booking not created.");
       }
     }
 
-    // --------------------- REFUND EVENTS ---------------------
+    
     if (event.startsWith("payment.refund")) {
       const refundEntity = payload.payload.refund?.entity || payload.payload.refund || {};
       const refundId = refundEntity.id;
@@ -393,7 +464,10 @@ if (event === "payment.captured") {
           refundId,
           refundedAt: new Date(),
         });
-       await Payment.findByIdAndUpdate(paymentDocId._id,{refunded:true});
+  await Payment.findByIdAndUpdate(paymentDocId._id, {
+    refunded: true,
+    refundStatus: "refunded"
+  });
         const booking = await Booking.findById(refundReq.booking);
 await sendEmail({
   to: booking.email,
@@ -442,14 +516,18 @@ await sendEmail({
         refundReq.status = "failed";
         refundReq.failedAt = new Date();
         timelineEntry = { status: "failed", message: "Refund failed at Razorpay.", date: new Date() };
-
+  await Payment.findByIdAndUpdate(paymentDocId._id, {
+    refundStatus: "failed"
+  });
         await Booking.findByIdAndUpdate(refundReq.booking, { refundStatus: "failed" });
 
       } else if (status === "processed" || status === "created" || status === "pending") {
         refundReq.status = "processing";
         refundReq.processedAt = new Date();
         timelineEntry = { status: "processing", message: "Refund request is being processed by Razorpay.", date: new Date() };
-
+  await Payment.findByIdAndUpdate(paymentDocId._id, {
+    refundStatus: "processing"
+  });
         await Booking.findByIdAndUpdate(refundReq.booking, { refundStatus: "processing" });
       }
 
@@ -482,12 +560,12 @@ export const completeOldBookings = async (req, res, next) => {
 
 
 
-// Add this to your backend controllers
+
 export const checkBookingConfirmation = async (req, res) => {
   try {
     const { orderId } = req.params;
     
-    // Check if booking exists with this order ID
+    
     const booking = await Booking.findOne({ razorpayOrderId: orderId });
     
     if (booking) {
@@ -498,7 +576,7 @@ export const checkBookingConfirmation = async (req, res) => {
       });
     }
     
-    // If not found yet
+    
     return res.json({ 
       success: false, 
       message: "Booking not yet confirmed" 
@@ -516,9 +594,9 @@ try {
 
   const bookings = await Booking.find({ user: userId }).sort({ stayDate: -1 });
 
-  // if (!bookings || bookings.length === 0) {
-  //   return next(new ErrorHandler('No bookings found for this user', 404));
-  // }
+  
+  
+  
 
   res.status(200).json({
     success: true,
@@ -530,95 +608,91 @@ try {
 }
 });
 
-
-
-
-//   session.startTransaction();
   
-//   try {
-//     const { id } = req.params;
-//     const userId = req.user._id; // Assuming authenticated user
 
-//     // 1. Find the booking
-//     const booking = await Booking.findById(id).session(session);
+
+
+
+
+
     
-//     if (!booking) {
-//       await session.abortTransaction();
-//       session.endSession();
-//       return res.status(404).json({ message: 'Booking not found' });
-//     }
 
-//     // 2. Check if user owns the booking
-//     if (booking.user.toString() !== userId.toString()) {
-//       await session.abortTransaction();
-//       session.endSession();
-//       return res.status(403).json({ message: 'Unauthorized to cancel this booking' });
-//     }
 
-//     // 3. Check booking status
-//     if (booking.status === 'completed') {
-//       await session.abortTransaction();
-//       session.endSession();
-//       return res.status(400).json({ message: 'Completed bookings cannot be canceled' });
-//     }
 
-//     if (booking.status === 'cancelled') {
-//       await session.abortTransaction();
-//       session.endSession();
-//       return res.status(400).json({ message: 'Booking is already cancelled' });
-//     }
 
-//     // 4. Check 24-hour cancellation window
-//     const now = new Date();
-//     const bookingTime = new Date(booking.createdAt);
-//     const hoursDiff = (now - bookingTime) / (1000 * 60 * 60);
 
-//     if (hoursDiff > 24) {
-//       await session.abortTransaction();
-//       session.endSession();
-//       return res.status(400).json({ message: 'Cancellation period expired (24 hours)' });
-//     }
 
-//     // 5. Update booking status
-//     booking.status = 'cancelled';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
  
 
-//     await booking.save({ session });
 
-//     // 6. Update accommodation bookedMembers
-//     const accommodation = await Accommodation.findById(booking.accommodation).session(session);
-    
-//     if (accommodation) {
-//       accommodation.bookedMembers = Math.max(0, accommodation.bookedMembers - booking.groupSize);
-//       await accommodation.save({ session });
-//     }
 
-//     // 7. Commit transaction
-//     await session.commitTransaction();
-//     session.endSession();
+
+
     
-//    if(booking.status==='cancelled')
-//     {
-//       return res.status(200).json({
-//         success:true,
-//         message:"your deposit amount has been refunded in working 3-4 business days."
-//       })
-//     }
+
+
+
+
+
+
+
+
     
-//   } catch (error) {
-//     // 8. Abort transaction on error
-//     await session.abortTransaction();
-//     session.endSession();
+
+
+
+
+
+
+
     
-//     console.error('Cancel booking error:', error);
-//     res.status(500).json({
-//       success: false,
-//       message: 'Internal server error',
-//       error: error.message
-//     });
-//   }
-// };
+
+
+
+
+    
+
+
+
+
+
+
+
+
 
 export const deleteBooking = async (req, res) => {
   const session = await mongoose.startSession();
@@ -627,9 +701,9 @@ export const deleteBooking = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user._id;
-    const role = req.user.role; // 'admin' or 'trekker'
+    const role = req.user.role; 
 
-    // 1️⃣ Find booking
+    
     const booking = await Booking.findById(id).session(session);
     if (!booking) {
       await session.abortTransaction();
@@ -637,21 +711,21 @@ export const deleteBooking = async (req, res) => {
       return res.status(404).json({ success: false, message: "Booking not found" });
     }
 
-    // 2️⃣ Role-based authorization
+    
     if (role === "trekker" && booking.user.toString() !== userId.toString()) {
       await session.abortTransaction();
       session.endSession();
       return res.status(403).json({ success: false, message: "Unauthorized to delete this booking" });
     }
 
-    // 3️⃣ Check booking status
+    
     if (!["cancelled", "completed"].includes(booking.status)) {
       await session.abortTransaction();
       session.endSession();
       return res.status(400).json({ success: false, message: "Only cancelled or completed bookings can be deleted" });
     }
 
-    // 4️⃣ Update deletion flags based on role
+    
     if (role === "admin") {
       booking.deletedBy.admin = true;
     } else if (role === "trekker") {
@@ -661,7 +735,7 @@ export const deleteBooking = async (req, res) => {
 
     await booking.save({ session });
 
-    // 5️⃣ Hard delete if both flags are true
+    
     if (booking.deletedBy.admin && booking.deletedBy.user) {
       await Booking.deleteOne({ _id: booking._id }).session(session);
     }
@@ -717,7 +791,7 @@ export const cancelThenAutoRefund = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Booking already cancelled' });
     }
 
-    // 24-hour window check
+    
     const now = new Date();
     const bookingTime = new Date(booking.createdAt);
     const hoursDiff = (now - bookingTime) / (1000 * 60 * 60);
@@ -726,7 +800,7 @@ export const cancelThenAutoRefund = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Cancellation period expired (24 hours)' });
     }
 
-    // Prevent duplicate refund attempts
+    
     const existing = await RefundRequest.findOne({
       booking: booking._id,
       status: { $in: ['initiated', 'processing'] }
@@ -736,7 +810,7 @@ export const cancelThenAutoRefund = async (req, res) => {
       return res.status(409).json({ success: false, message: 'Refund already in progress for this booking' });
     }
 
-    // Compute refundable amount
+    
     let refundableAmount = 0;
     if (booking.paymentMode === 'cash') {
       refundableAmount = booking.depositAmount || 0;
@@ -746,7 +820,7 @@ export const cancelThenAutoRefund = async (req, res) => {
 
     refundableAmount = refundableAmount * 0.75;
 refundableAmount = Math.round(refundableAmount);
-    // Update booking & accommodation inside transaction
+    
     booking.status = 'cancelled';
     booking.refundRequested = true;
     booking.refundAmount = refundableAmount;
@@ -759,7 +833,7 @@ refundableAmount = Math.round(refundableAmount);
       await accommodation.save({ session });
     }
 
-    // Link payment doc if present
+    
     let paymentDoc = null;
     if (booking.razorpayOrderId) {
       paymentDoc = await Payment.findOne({ razorpayOrderId: booking.razorpayOrderId }).session(session);
@@ -768,7 +842,7 @@ refundableAmount = Math.round(refundableAmount);
       paymentDoc = await Payment.findOne({ razorpayPaymentId: booking.transactionId }).session(session);
     }
 
-    // Create RefundRequest with timeline
+    
     const [refundReq] = await RefundRequest.create([{
       booking: booking._id,
       user: userId,
@@ -840,7 +914,7 @@ await sendEmail({
     await session.commitTransaction();
     session.endSession();
 
-    // ONLINE: trigger Razorpay refund (outside transaction)
+    
     try {
       const razorpayPaymentId = (paymentDoc && paymentDoc.razorpayPaymentId) || booking.transactionId;
       if (!razorpayPaymentId) {
@@ -920,7 +994,7 @@ export const adminProcessRefund = async (req, res) => {
 
     const refundReq = await RefundRequest.findById(refundId).populate('payment booking');
     if (!refundReq) return res.status(404).json({ success: false, message: 'Refund request not found' });
-    // Cash refund: mark refunded
+    
     if (refundReq.method === 'cash') {
       refundReq.status = 'refunded';
       refundReq.adminNotes = (refundReq.adminNotes || '') + '\n' + (adminNotes || `Cash refunded by admin ${user._id}`);
@@ -936,13 +1010,13 @@ export const adminProcessRefund = async (req, res) => {
       return res.json({ success: true, message: 'Cash refund marked as completed', refundReq });
     }
 
-    // For razorpay refunds: allow admin retry
+    
     if (refundReq.method === 'razorpay') {
       if (refundReq.status === 'processing') {
         return res.status(400).json({ success: false, message: 'Refund already processing' });
       }
 
-      // find payment id
+      
       let razorpayPaymentId = null;
       if (refundReq.payment && refundReq.payment.razorpayPaymentId) {
         razorpayPaymentId = refundReq.payment.razorpayPaymentId;
@@ -1047,7 +1121,7 @@ export const getBookingById = async (req, res, next) => {
       });
     }
 
-    // Optional: Check access (if only admin/owner can see)
+    
     if (
       req.user.role !== "admin" &&
       booking.user.toString() !== req.user._id.toString()

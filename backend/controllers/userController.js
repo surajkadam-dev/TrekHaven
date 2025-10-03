@@ -168,20 +168,13 @@ export const login = catchAsyncErrors(async (req, res, next) => {
 
   // Check role
  
-<<<<<<< HEAD
-=======
 
->>>>>>> 48ebd05 (Email Notification Update)
   if(user.role !== role) {
     return res.status(401).json({
       success: false,
       error: "Invalid email or password or role"
     });
   }
-<<<<<<< HEAD
-
-=======
->>>>>>> 48ebd05 (Email Notification Update)
   // Admin check
   if (role === "admin" && !user.isAdmin) {
     return next(new ErrorHandler("Unauthorized access. You are not an admin.", 403));
@@ -234,11 +227,7 @@ if(user)
     })
   }
 }
-<<<<<<< HEAD
-
-=======
  
->>>>>>> 48ebd05 (Email Notification Update)
 
     if (user) {
       // Existing Google user → login
@@ -387,48 +376,16 @@ export const updateProfile = catchAsyncErrors(async (req, res, next) => {
   console.log("id", req.user._id);
   const { name, email, mobile } = req.body;
 
-  // Validate request body - check for all required fields
-  if (!name || !email || !mobile) {
-   return res.status(400).json({
-     success: false,
-     status: 400,
-     error: "Please provide all required fields"
-   });
-  }
-
-  // Validate email format
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  // Validate that at least one field is provided
+  if (!name && !email && !mobile) {
     return res.status(400).json({
       success: false,
       status: 400,
-      error: "Please provide a valid email"
+      error: "Please provide at least one field to update"
     });
   }
 
-  // Validate mobile number format
-  if (!/^[0-9]{10}$/.test(mobile)) {
-    return res.status(400).json({
-      success: false,
-      status: 400,
-      error: "Enter a valid 10-digit mobile number"
-    });
-  }
-
-  // Check if email is being changed to another user's email
-  const existingUserWithEmail = await User.findOne({ 
-    email,
-    _id: { $ne: req.user.id } // Exclude current user
-  });
-
-  if (existingUserWithEmail) {
-    return res.status(400).json({
-      success: false,
-      status: 400,
-      error: "Email is already in use"
-    });
-  }
-
-  // Find and update user
+  // Find user
   const user = await User.findById(req.user.id);
 
   if (!user) {
@@ -439,15 +396,56 @@ export const updateProfile = catchAsyncErrors(async (req, res, next) => {
     });
   }
 
-  // Update only allowed fields
-  user.name = name;
-  user.email = email;
-  user.mobile = mobile;
+  // Validate email format if email is provided
+  if (email && email !== user.email) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({
+        success: false,
+        status: 400,
+        error: "Please provide a valid email"
+      });
+    }
+
+    // Check if email is being changed to another user's email
+    const existingUserWithEmail = await User.findOne({ 
+      email,
+      _id: { $ne: req.user.id } // Exclude current user
+    });
+
+    if (existingUserWithEmail) {
+      return res.status(400).json({
+        success: false,
+        status: 400,
+        error: "Email is already in use"
+      });
+    }
+
+    user.email = email;
+    user.lastUpdateEmail = Date.now();
+  }
+
+  // Validate mobile number format if mobile is provided
+  if (mobile && mobile !== user.mobile) {
+    if (!/^[0-9]{10}$/.test(mobile)) {
+      return res.status(400).json({
+        success: false,
+        status: 400,
+        error: "Enter a valid 10-digit mobile number"
+      });
+    }
+    user.mobile = mobile;
+    user.lastUpdateMobile = Date.now();
+  }
+
+  // Update name if provided
+  if (name && name !== user.name) {
+    user.name = name;
+  }
 
   // Save with validation
   await user.save({ validateBeforeSave: true });
 
-  sendToken(user,200,res,"Profile updated successfully");
+  sendToken(user, 200, res, "Profile updated successfully");
 });
 
 export const handleContactFormSubmit = async (req,res) => {

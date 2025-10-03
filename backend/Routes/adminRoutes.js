@@ -1,9 +1,21 @@
 import express from 'express';
 import { isAuthenticated, isAuthorized } from "../middleware/auth.js";
-import { createAccommodation,getAccommodation,getAllUsers,getAllBookings,updatePaymentStatus,updateAccommodation,getUserDetails,blockUser,unblockUser,getBookingsByDate} from '../controllers/adminController.js';
+import { createAccommodation,
+  getAccommodation,
+  getAllUsers,
+  getAllBookings,
+  updatePaymentStatus,
+  updateAccommodation,
+  getUserDetails,
+  blockUser,
+  unblockUser,
+  getBookingsByDate
+  ,getBookingSummary
+} from '../controllers/adminController.js';
 import { adminProcessRefund } from '../controllers/bookingController.js';
 
 import {getAllRefundRequests} from "../controllers/refundController.js";
+
 
 
 
@@ -20,6 +32,7 @@ router.post("/:refundId/process",isAuthenticated,isAuthorized('admin'),adminProc
 router.get("/:id/user/detail",isAuthenticated,isAuthorized("admin"),getUserDetails);
 router.put("/:id/block/user",isAuthenticated,isAuthorized("admin"),blockUser);
 router.put("/:id/unblock/user",isAuthenticated,isAuthorized("admin"),unblockUser);
-router.get("/booked-members",isAuthenticated,isAuthorized("admin"),getBookingsByDate)
+router.get("/booked-members",isAuthenticated,isAuthorized("admin"),getBookingsByDate);
+router.get("/summary",isAuthenticated,isAuthorized("admin"),getBookingSummary);
 
 export default router;

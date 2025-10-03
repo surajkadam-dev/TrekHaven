@@ -7,6 +7,7 @@ import Payment from '../models/Payment.model.js';
 import RefundRequest from '../models/RefundRequest.model.js';
 import mongoose from 'mongoose';
 import { getBookedSeatsForDate } from '../helper/capacity.js';
+import {getDailySummary,getMonthlySummary,getWeeklySummary,getDateRangeSummary} from "../helper/capacity.js";
 export const createAccommodation = async (req, res, next) => {
   try {
     const {  maxMembers, vegRate, nonVegRate, pricePerNight } = req.body;
@@ -399,14 +400,14 @@ export const getBookingsByDate = async (req, res) => {
   try {
     const totalBooked = await getBookedSeatsForDate(stayDate);
 
-    if (totalBooked === 0) {
-      return res.status(404).json({
-        success: false,
-        totalBooked: 0,
-        error: "No Booked Members",
-      });
-    }
-console.log("Total Booked Members:", totalBooked);
+    // if (totalBooked === 0) {
+    //   return res.status(404).json({
+    //     success: false,
+    //     totalBooked: 0,
+    //     error: "No Booked Members",
+    //   });
+    // }
+// console.log("Total Booked Members:", totalBooked);
     // Only send success if totalBooked > 0
     res.status(200).json({
       success: true,
@@ -416,7 +417,47 @@ console.log("Total Booked Members:", totalBooked);
         .split("T")[0],
     });
   } catch (err) {
+    console.error("Error in getBookingsByDate:", err);
     res.status(500).json({ success: false, error: err.message || "Server Error" });
   }
 };
 
+import moment from 'moment-timezone';
+
+export const getBookingSummary = async (req, res) => {
+  const { period, date, startDate, endDate } = req.query;
+
+  try {
+    let result;
+
+    // Handle different query types
+    if (period === 'week') {
+      result = await getWeeklySummary();
+    } else if (period === 'month') {
+      result = await getMonthlySummary();
+    } else if (date) {
+      // Specific date
+      result = await getDailySummary(date);
+    } else if (startDate && endDate) {
+      // Custom date range
+      result = await getDateRangeSummary(startDate, endDate);
+    } else {
+      // Default: current month summary (your original function)
+      result = await getDefaultSummary();
+    }
+
+    res.status(200).json({
+      success: true,
+      period: period || 'month',
+      date: date || moment().format('YYYY-MM-DD'),
+      ...result
+    });
+
+  } catch (err) {
+    console.error("Error in getBookingSummary:", err);
+    res.status(500).json({ 
+      success: false, 
+      error: err.message || "Server Error" 
+    });
+  }
+};

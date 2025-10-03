@@ -34,6 +34,8 @@ mobile: {
     provider: { type: String, enum: ['local', 'google'], default: 'local' },
   googleId: { type: String, unique: true, sparse: true },
   isBlocked:{type:Boolean, default:false},
+  lastUpdateEmail:{type:Date},
+  lastUpdateMobile:{type:Date},
   avatar:{
     type:String,
     default:""

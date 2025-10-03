@@ -12,6 +12,7 @@ import { razorpayWebhook } from './controllers/bookingController.js';
 import { bookingCronJob } from './cronJobs/bookingCron.js';
 import otpRoutes from './Routes/otpRoutes.js';
 import paymentRoutes from "./Routes/paymentRoutes.js"
+import EmergencyUpdateRoutes from "./Routes/emergencyUpdateRoutes.js"
 const app=express();
 config({
   path:'./config/config.env'
@@ -39,6 +40,7 @@ app.post("/razorpay/webhook", express.raw({ type: "application/json" }), razorpa
   app.use("/api/v1/refund",refundRoutes);
   app.use("/api/v1/otp",otpRoutes);
   app.use("/api/v1/payments",paymentRoutes);
+  app.use("/api/v1/emergency-request",EmergencyUpdateRoutes); 
  connection();
  bookingCronJob();
 
