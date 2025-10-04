@@ -16,7 +16,7 @@ export const getUserTransactions = async (req, res) => {
       .sort({ createdAt: -1 }) // latest first
       .skip(skip)
       .limit(Number(limit))
-      .select("amount status razorpayPaymentId razorpayOrderId method createdAt"); // only required fields
+      .select("amount status razorpayPaymentId razorpayOrderId method createdAt bookingCreated refundStatus refunded"); // only required fields
 
     const total = await Payment.countDocuments(filter);
 
